@@ -1,0 +1,160 @@
+{
+    "@context": [
+        "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld",
+        {
+            "sosa": "http://www.w3.org/ns/sosa/",
+            "geo": "http://www.opengis.net/ont/geosparql#",
+            "fiware": "https://smartdatamodels.org/dataModel.Environment/",
+            "schema": "https://schema.org/",
+            "ex": "http://example.org/flood#"
+        }
+    ],
+    "@graph": [
+        {
+            "id": "urn:ngsi-ld:Sensor:sensor001",
+            "type": "Sensor",
+            "name": {
+                "type": "Property",
+                "value": "Cảm biến mực nước - Cầu A"
+            },
+            "location": {
+                "type": "GeoProperty",
+                "value": {
+                    "type": "Point",
+                    "coordinates": [
+                        105.84,
+                        21.03
+                    ]
+                }
+            },
+            "description": {
+                "type": "Property",
+                "value": "Thiết bị đo mực nước, đặt tại vị trí cố định hoặc di động."
+            }
+        },
+        {
+            "id": "urn:ngsi-ld:MonitoringArea:area_district1",
+            "type": "FeatureOfInterest",
+            "name": {
+                "type": "Property",
+                "value": "Quận 1 - Khu vực trung tâm"
+            },
+            "location": {
+                "type": "GeoProperty",
+                "value": {
+                    "type": "Polygon",
+                    "coordinates": [
+                        [
+                            [
+                                105.83,
+                                21.02
+                            ],
+                            [
+                                105.85,
+                                21.02
+                            ],
+                            [
+                                105.85,
+                                21.04
+                            ],
+                            [
+                                105.83,
+                                21.04
+                            ],
+                            [
+                                105.83,
+                                21.02
+                            ]
+                        ]
+                    ]
+                }
+            }
+        },
+        {
+            "id": "urn:ngsi-ld:Observation:obs0001",
+            "type": "FloodObservation",
+            "madeBySensor": {
+                "type": "Relationship",
+                "object": "urn:ngsi-ld:Sensor:sensor001"
+            },
+            "hasFeatureOfInterest": {
+                "type": "Relationship",
+                "object": "urn:ngsi-ld:MonitoringArea:area_district1"
+            },
+            "waterLevel": {
+                "type": "Property",
+                "value": 0.85,
+                "unitCode": "MTR"
+            },
+            "resultTime": {
+                "type": "Property",
+                "value": "2025-11-05T09:30:00+07:00"
+            },
+            "name": {
+                "type": "Property",
+                "value": "Quan sát mực nước tại Cầu A"
+            }
+        },
+        {
+            "id": "urn:ngsi-ld:Observation:weather001",
+            "type": "WeatherObservation",
+            "rainLevel": {
+                "type": "Property",
+                "value": 12.4,
+                "unitCode": "MMT"
+            },
+            "resultTime": {
+                "type": "Property",
+                "value": "2025-11-05T08:00:00+07:00"
+            }
+        },
+        {
+            "id": "urn:ngsi-ld:CitizenReport:report001",
+            "type": "CitizenReport",
+            "reportedBy": {
+                "type": "Property",
+                "value": "Nguyen Van A"
+            },
+            "reportedAt": {
+                "type": "Property",
+                "value": "2025-11-05T08:45:00+07:00"
+            },
+            "hasFeatureOfInterest": {
+                "type": "Relationship",
+                "object": "urn:ngsi-ld:MonitoringArea:area_district1"
+            },
+            "name": {
+                "type": "Property",
+                "value": "Ngập dưới cầu C - ảnh kèm"
+            }
+        },
+        {
+            "id": "urn:ngsi-ld:FloodEvent:floodEvent0001",
+            "type": "FloodEvent",
+            "name": {
+                "type": "Property",
+                "value": "Ngập tuyến đường X - 05/11/2025"
+            },
+            "severity": {
+                "type": "Property",
+                "value": "Medium"
+            },
+            "isCausedBy": {
+                "type": "Relationship",
+                "object": "urn:ngsi-ld:FloodEvent:HeavyRainEvent"
+            },
+            "description": {
+                "type": "Property",
+                "value": "Sự kiện tổng hợp từ nhiều quan sát và phản ánh."
+            }
+        },
+        {
+            "id": "urn:ngsi-ld:FloodEvent:HeavyRainEvent",
+            "type": "HeavyRainEvent",
+            "name": {
+                "type": "Property",
+                "value": "Ngập do mưa lớn"
+            }
+        }
+    ]
+}

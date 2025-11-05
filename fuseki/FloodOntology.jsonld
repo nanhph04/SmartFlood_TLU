@@ -1,0 +1,212 @@
+{
+    "@context": {
+        "rdfs": "http://www.w3.org/2000/01/rdf-schema#",
+        "rdf": "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
+        "owl": "http://www.w3.org/2002/07/owl#",
+        "xsd": "http://www.w3.org/2001/XMLSchema#",
+        "sosa": "http://www.w3.org/ns/sosa/",
+        "ssn": "http://www.w3.org/ns/ssn/",
+        "schema": "https://schema.org/",
+        "geo": "http://www.opengis.net/ont/geosparql#",
+        "fiware": "https://smartdatamodels.org/dataModel.Environment/",
+        "skos": "http://www.w3.org/2004/02/skos/core#",
+        "ex": "http://example.org/flood#"
+    },
+    "@graph": [
+        {
+            "@id": "ex:FloodSensor",
+            "@type": "rdfs:Class",
+            "rdfs:subClassOf": {
+                "@id": "sosa:Sensor"
+            },
+            "rdfs:label": "Cảm biến mực nước đô thị",
+            "rdfs:comment": "Thiết bị đo mực nước, đặt tại vị trí cố định hoặc di động."
+        },
+        {
+            "@id": "ex:FloodObservation",
+            "@type": "rdfs:Class",
+            "rdfs:subClassOf": {
+                "@id": "sosa:Observation"
+            },
+            "rdfs:label": "Quan sát mực nước",
+            "rdfs:comment": "Quan sát kết quả đo mực nước từ cảm biến hoặc nguồn dữ liệu khác."
+        },
+        {
+            "@id": "ex:WeatherObservation",
+            "@type": "rdfs:Class",
+            "rdfs:subClassOf": {
+                "@id": "sosa:Observation"
+            },
+            "rdfs:label": "Quan sát thời tiết"
+        },
+        {
+            "@id": "ex:CitizenReport",
+            "@type": "rdfs:Class",
+            "rdfs:subClassOf": {
+                "@id": "schema:Report"
+            },
+            "rdfs:label": "Phản ánh của người dân",
+            "rdfs:comment": "Báo cáo do công dân gửi (văn bản, ảnh, tọa độ, thời gian)."
+        },
+        {
+            "@id": "ex:FloodEvent",
+            "@type": "rdfs:Class",
+            "rdfs:subClassOf": {
+                "@id": "fiware:FloodEvent"
+            },
+            "owl:equivalentClass": {
+                "@id": "fiware:FloodEvent"
+            },
+            "rdfs:label": "Sự kiện ngập đô thị",
+            "rdfs:comment": "Sự kiện ngập mảng, có thể liên kết tới nhiều observation và báo cáo."
+        },
+        {
+            "@id": "ex:MonitoringArea",
+            "@type": "rdfs:Class",
+            "rdfs:subClassOf": {
+                "@id": "sosa:FeatureOfInterest"
+            },
+            "rdfs:label": "Khu vực giám sát",
+            "rdfs:comment": "Khu vực (vùng, điểm, lưới) nơi thu thập quan sát."
+        },
+        {
+            "@id": "ex:SeverityLevel",
+            "@type": "rdfs:Class",
+            "rdfs:label": "Mức độ nghiêm trọng"
+        },
+        {
+            "@id": "ex:LowSeverity",
+            "@type": "ex:SeverityLevel",
+            "skos:prefLabel": "Thấp"
+        },
+        {
+            "@id": "ex:MediumSeverity",
+            "@type": "ex:SeverityLevel",
+            "skos:prefLabel": "Trung bình"
+        },
+        {
+            "@id": "ex:HighSeverity",
+            "@type": "ex:SeverityLevel",
+            "skos:prefLabel": "Nghiêm trọng"
+        },
+        {
+            "@id": "ex:HeavyRainEvent",
+            "@type": "rdfs:Class",
+            "rdfs:subClassOf": {
+                "@id": "ex:FloodEvent"
+            },
+            "rdfs:label": "Ngập do mưa lớn"
+        },
+        {
+            "@id": "ex:TidalSurge",
+            "@type": "rdfs:Class",
+            "rdfs:subClassOf": {
+                "@id": "ex:FloodEvent"
+            },
+            "rdfs:label": "Ngập do triều cường"
+        },
+        {
+            "@id": "ex:BlockedDrainEvent",
+            "@type": "rdfs:Class",
+            "rdfs:subClassOf": {
+                "@id": "ex:FloodEvent"
+            },
+            "rdfs:label": "Ngập do cống tắc"
+        },
+        {
+            "@id": "ex:waterLevel",
+            "@type": "rdf:Property",
+            "rdfs:domain": {
+                "@id": "ex:FloodObservation"
+            },
+            "rdfs:range": {
+                "@id": "xsd:decimal"
+            },
+            "rdfs:label": "Mực nước đo được (mét)"
+        },
+        {
+            "@id": "ex:rainLevel",
+            "@type": "rdf:Property",
+            "rdfs:domain": {
+                "@id": "ex:WeatherObservation"
+            },
+            "rdfs:range": {
+                "@id": "xsd:decimal"
+            },
+            "rdfs:label": "Lượng mưa (mm)"
+        },
+        {
+            "@id": "ex:relatedEvent",
+            "@type": "rdf:Property",
+            "rdfs:domain": {
+                "@id": "ex:FloodObservation"
+            },
+            "rdfs:range": {
+                "@id": "ex:FloodEvent"
+            },
+            "rdfs:label": "Liên kết đến sự kiện ngập"
+        },
+        {
+            "@id": "ex:reportedBy",
+            "@type": "rdf:Property",
+            "rdfs:domain": {
+                "@id": "ex:CitizenReport"
+            },
+            "rdfs:range": {
+                "@id": "schema:Person"
+            },
+            "rdfs:label": "Người gửi phản ánh"
+        },
+        {
+            "@id": "ex:severity",
+            "@type": "rdf:Property",
+            "rdfs:domain": {
+                "@id": "ex:FloodEvent"
+            },
+            "rdfs:range": {
+                "@id": "ex:SeverityLevel"
+            },
+            "rdfs:label": "Mức độ nghiêm trọng"
+        },
+        {
+            "@id": "ex:isCausedBy",
+            "@type": "rdf:Property",
+            "rdfs:domain": {
+                "@id": "ex:FloodEvent"
+            },
+            "rdfs:range": {
+                "@id": "ex:FloodEvent"
+            },
+            "rdfs:subPropertyOf": {
+                "@id": "schema:causedBy"
+            },
+            "rdfs:label": "Nguyên nhân gây ra",
+            "rdfs:comment": "Liên kết tới các lớp sự kiện con như HeavyRainEvent hoặc TidalSurge."
+        },
+        {
+            "@id": "ex:reportedAt",
+            "@type": "rdf:Property",
+            "rdfs:domain": {
+                "@id": "ex:CitizenReport"
+            },
+            "rdfs:range": {
+                "@id": "xsd:dateTime"
+            },
+            "rdfs:subPropertyOf": {
+                "@id": "schema:dateCreated"
+            },
+            "rdfs:label": "Thời điểm tạo báo cáo"
+        },
+        {
+            "@id": "geo:hasGeometry",
+            "@type": "rdf:Property",
+            "rdfs:domain": {
+                "@id": "sosa:FeatureOfInterest"
+            },
+            "rdfs:range": {
+                "@id": "geo:Geometry"
+            },
+            "rdfs:label": "Hình học / Vị trí"
+        }
+    ]
+}

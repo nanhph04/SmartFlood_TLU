@@ -1,0 +1,69 @@
+@prefix ex: <http://example.org/flood#> .
+@prefix sosa: <http://www.w3.org/ns/sosa/> .
+@prefix schema: <https://schema.org/> .
+@prefix geo: <http://www.opengis.net/ont/geosparql#> .
+@prefix fiware: <https://smartdatamodels.org/dataModel.Environment/> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix ngsi-ld: <https://uri.etsi.org/ngsi-ld/> .
+
+####################################################################
+# SENSOR
+####################################################################
+
+ex:sensor001 a ex:FloodSensor ;
+    schema:name "Cảm biến mực nước - Cầu A"@vi ;
+    geo:hasGeometry [ a geo:Geometry ; geo:asWKT "POINT(105.84 21.03)"^^geo:wktLiteral ] .
+
+####################################################################
+# MONITORING AREA
+####################################################################
+
+ex:area_district1 a ex:MonitoringArea ;
+    schema:name "Quận 1 - Khu vực trung tâm"@vi ;
+    geo:hasGeometry [ a geo:Geometry ; geo:asWKT "POLYGON((105.83 21.02,105.85 21.02,105.85 21.04,105.83 21.04,105.83 21.02))"^^geo:wktLiteral ] .
+
+####################################################################
+# OBSERVATIONS
+####################################################################
+
+ex:obs0001 a ex:FloodObservation ;
+    schema:name "Quan sát mực nước tại Cầu A"@vi ;
+    sosa:madeBySensor ex:sensor001 ;
+    sosa:hasFeatureOfInterest ex:area_district1 ;
+    sosa:observedProperty ex:waterLevel ;
+    ex:waterLevel "0.85"^^xsd:decimal ;
+    sosa:resultTime "2025-11-05T09:30:00+07:00"^^xsd:dateTime ;
+    fiware:dateObserved "2025-11-05T09:30:00+07:00"^^xsd:dateTime ;
+    fiware:refDevice ex:sensor001 ;
+    fiware:refArea ex:area_district1 .
+
+ex:weather001 a ex:WeatherObservation ;
+    sosa:observedProperty ex:rainLevel ;
+    ex:rainLevel "12.4"^^xsd:decimal ;
+    sosa:resultTime "2025-11-05T08:00:00+07:00"^^xsd:dateTime ;
+    fiware:dateObserved "2025-11-05T08:00:00+07:00"^^xsd:dateTime .
+
+####################################################################
+# CITIZEN REPORTS
+####################################################################
+
+ex:report001 a ex:CitizenReport ;
+    schema:name "Ngập dưới cầu C - ảnh kèm"@vi ;
+    ex:reportedBy [ a schema:Person ; schema:name "Nguyen Van A"@vi ] ;
+    ex:reportedAt "2025-11-05T08:45:00+07:00"^^xsd:dateTime ;
+    sosa:hasFeatureOfInterest ex:area_district1 .
+
+####################################################################
+# FLOOD EVENTS
+####################################################################
+
+ex:heavyRainEvent001 a ex:HeavyRainEvent ;
+    schema:name "Mưa lớn đêm 04-11-2025"@vi .
+
+ex:floodEvent0001 a ex:FloodEvent ;
+    schema:name "Ngập tuyến đường X - 05/11/2025"@vi ;
+    ex:severity ex:MediumSeverity ;
+    ex:isCausedBy ex:heavyRainEvent001 ;
+    rdfs:comment "Sự kiện tổng hợp từ nhiều quan sát và phản ánh."@vi ;
+    fiware:refArea ex:area_district1 ;
+    fiware:dateObserved "2025-11-05T09:30:00+07:00"^^xsd:dateTime .

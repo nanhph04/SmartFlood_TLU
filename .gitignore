@@ -1,0 +1,85 @@
+# =========================
+# ⚙️ Tổng quát
+# =========================
+.DS_Store
+Thumbs.db
+node_modules/
+dist/
+build/
+.env
+.env.local
+.env.development.local
+.env.production.local
+.env.test.local
+
+# =========================
+# 🧠 Backend (Node.js)
+# =========================
+backend/node_modules/
+backend/.env
+backend/.env.*
+backend/npm-debug.log*
+backend/yarn-error.log*
+backend/package-lock.json
+
+# Nếu bạn không muốn lock version lib thì ignore file này, 
+# còn nếu muốn reproducible build thì giữ lại.
+
+# =========================
+# 💻 Frontend (React/Vite)
+# =========================
+frontend/node_modules/
+frontend/.env
+frontend/.env.*
+frontend/dist/
+frontend/.vite/
+frontend/package-lock.json
+frontend/yarn-error.log*
+
+# =========================
+# 🧱 Fuseki & dữ liệu RDF
+# =========================
+fuseki/datasets/
+# Thư mục datasets có thể chứa RDF database thực tế (nặng)
+# Bạn chỉ nên giữ lại file config.ttl và README.md
+
+# =========================
+# 🧰 Docker
+# =========================
+**/tmp/
+**/cache/
+**/.docker/
+**/*.pid
+**/*.log
+
+# =========================
+# 🧪 Test / Build tools
+# =========================
+coverage/
+logs/
+*.log
+*.out
+*.pid
+*.seed
+*.tgz
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnp/
+.pnp.js
+
+# =========================
+# ⚗️ IDE / Editor
+# =========================
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# =========================
+# 🧩 Misc
+# =========================
+scripts/__pycache__/
+*.pyc
+__pycache__/
+.cache/
