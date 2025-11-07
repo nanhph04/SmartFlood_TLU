@@ -1,13 +1,37 @@
-const express = require('express');
+import express from 'express';
+import cors from 'cors';
+import dotenv from 'dotenv';
+import connectDB from './configs/db.js';
+import morgan from 'morgan';
+import weather from './routes/weather.routes.js';
+
+dotenv.config();
+
 const app = express();
-const port = 3000;
+app.use(cors());
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(morgan("dev"));
 
-// Route cơ bản
-app.get('/', (req, res) => {
-    res.send('Hello Backend with Express!');
+// Routes
+app.use("/api/weather", weather);
+// app.use("/api/users", userRoutes);
+// app.use("/api/reports", reportRoutes);
+// app.use("/api/sensors", sensorRoutes);
+// app.use("/api/rdf", rdfRoutes);
+
+connectDB();
+
+app.get('/', (_req, res) => {
+    res.send('Chào mừng đến với API Smart Flood Management System');
 });
 
-// Khởi động Server
-app.listen(port, () => {
-    console.log(`Server đang chạy tại http://localhost:${port}`);
+
+// Xử lý lỗi tập trung
+app.use((err, req, res, next) => {
+    console.error(err.stack);
+    res.status(500).json({ message: "Internal Server Error" });
 });
+
+const PORT = process.env.PORT || 5001;
+app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
