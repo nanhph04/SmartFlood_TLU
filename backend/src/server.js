@@ -4,6 +4,8 @@ import dotenv from 'dotenv';
 import connectDB from './configs/db.js';
 import morgan from 'morgan';
 import weather from './routes/weather.routes.js';
+import streetRoutes from './routes/monitoringarea.route.js';
+import { fetchAndSaveWeatherForAllAreas } from './services/weatherService.js';
 
 dotenv.config();
 
@@ -15,10 +17,7 @@ app.use(morgan("dev"));
 
 // Routes
 app.use("/api/weather", weather);
-// app.use("/api/users", userRoutes);
-// app.use("/api/reports", reportRoutes);
-// app.use("/api/sensors", sensorRoutes);
-// app.use("/api/rdf", rdfRoutes);
+app.use("/api/streets", streetRoutes);
 
 connectDB();
 
@@ -34,4 +33,10 @@ app.use((err, req, res, next) => {
 });
 
 const PORT = process.env.PORT || 5001;
-app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+app.listen(PORT, () => {
+    console.log(`🚀 Server running on port ${PORT}`);
+    // Gọi ngay khi khởi động
+    fetchAndSaveWeatherForAllAreas();
+    // Lặp lại mỗi 1 giờ
+    setInterval(fetchAndSaveWeatherForAllAreas, 1 * 60 * 60 * 1000);
+});
