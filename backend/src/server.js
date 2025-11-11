@@ -5,6 +5,7 @@ import connectDB from './configs/db.js';
 import morgan from 'morgan';
 import weather from './routes/weather.routes.js';
 import streetRoutes from './routes/monitoringarea.route.js';
+import sensorRoutes from './routes/sensor.route.js';
 import { fetchAndSaveWeatherForAllAreas } from './services/weatherService.js';
 
 dotenv.config();
@@ -18,6 +19,7 @@ app.use(morgan("dev"));
 // Routes
 app.use("/api/weather", weather);
 app.use("/api/streets", streetRoutes);
+app.use("/api/sensors", sensorRoutes);
 
 connectDB();
 

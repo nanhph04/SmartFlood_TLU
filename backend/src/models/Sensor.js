@@ -4,6 +4,7 @@ const SensorSchema = new mongoose.Schema({
     id: { type: String, required: true, unique: true },
     type: { type: String, default: "FloodSensor" },
     name: { type: String },
+    areaName: { type: String },
     location: {
         type: {
             type: String,
