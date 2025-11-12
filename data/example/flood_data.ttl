@@ -1,0 +1,84 @@
+@prefix ex: <http://example.org/flood#> .
+@prefix sosa: <http://www.w3.org/ns/sosa/> .
+@prefix schema: <https://schema.org/> .
+@prefix geo: <http://www.opengis.net/ont/geosparql#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix fiware: <https://smartdatamodels.org/dataModel.Environment/> .
+
+####################################################################
+# 1️⃣ CẢM BIẾN VÀ KHU VỰC GIÁM SÁT
+####################################################################
+
+ex:Sensor_HaNoi_001 a ex:FloodSensor ;
+    schema:name "Cảm biến mực nước Trần Hưng Đạo"@vi ;
+    sosa:observes ex:WaterLevelProperty ;
+    geo:hasGeometry ex:Geom_Sensor_HN_001 .
+
+ex:Geom_Sensor_HN_001 a geo:Geometry ;
+    geo:asWKT "POINT(105.853 21.028)"^^geo:wktLiteral .
+
+ex:Area_HaNoi_Center a ex:MonitoringArea ;
+    schema:name "Khu vực trung tâm Hà Nội"@vi ;
+    geo:hasGeometry ex:Geom_Area_HaNoi .
+
+ex:Geom_Area_HaNoi a geo:Geometry ;
+    geo:asWKT "POLYGON((105.84 21.02, 105.86 21.02, 105.86 21.03, 105.84 21.03, 105.84 21.02))"^^geo:wktLiteral .
+
+####################################################################
+# 2️⃣ QUAN SÁT THỰC TẾ
+####################################################################
+
+ex:Observation_2025_11_05_001 a ex:FloodObservation ;
+    sosa:madeBySensor ex:Sensor_HaNoi_001 ;
+    sosa:resultTime "2025-11-05T09:00:00Z"^^xsd:dateTime ;
+    ex:waterLevel "1.25"^^xsd:decimal ;
+    fiware:refArea ex:Area_HaNoi_Center ;
+    ex:relatedEvent ex:FloodEvent_HaNoi_2025_11_05 .
+
+ex:WeatherObs_2025_11_05_001 a ex:WeatherObservation ;
+    sosa:resultTime "2025-11-05T09:00:00Z"^^xsd:dateTime ;
+    ex:rainLevel "45.2"^^xsd:decimal ;
+    fiware:refArea ex:Area_HaNoi_Center .
+
+####################################################################
+# 3️⃣ SỰ KIỆN NGẬP & PHẢN ÁNH CỘNG ĐỒNG
+####################################################################
+
+ex:FloodEvent_HaNoi_2025_11_05 a ex:FloodEvent ;
+    schema:name "Sự kiện ngập sáng 5/11/2025 - Hà Nội"@vi ;
+    ex:severity ex:MediumSeverity ;
+    ex:isCausedBy ex:HeavyRainEvent_2025_11_05 ;
+    fiware:refArea ex:Area_HaNoi_Center .
+
+ex:HeavyRainEvent_2025_11_05 a ex:FloodEvent ;
+    schema:name "Mưa lớn kéo dài sáng 5/11/2025"@vi ;
+    ex:severity ex:LowSeverity .
+
+ex:CitizenReport_001 a ex:CitizenReport ;
+    schema:text "Đường Trần Hưng Đạo ngập khoảng 30cm, xe chết máy nhiều."@vi ;
+    ex:reportedBy ex:Person_NguyenAn ;
+    ex:reportedAt "2025-11-05T09:15:00Z"^^xsd:dateTime ;
+    geo:hasGeometry ex:Geom_Report_HN_001 ;
+    ex:relatedEvent ex:FloodEvent_HaNoi_2025_11_05 .
+
+ex:Geom_Report_HN_001 a geo:Geometry ;
+    geo:asWKT "POINT(105.8535 21.0275)"^^geo:wktLiteral .
+
+ex:Person_NguyenAn a schema:Person ;
+    schema:name "Nguyễn An"@vi .
+
+####################################################################
+# 4️⃣ DỰ BÁO VÀ MÔ HÌNH
+####################################################################
+
+ex:PredictionModel_LSTM a ex:PredictionModel ;
+    schema:name "Mô hình LSTM dự báo mực nước Hà Nội"@vi ;
+    schema:creator "Nhóm nghiên cứu UDW - Đại học Thủy Lợi"@vi ;
+    schema:dateCreated "2025-09-20T00:00:00Z"^^xsd:dateTime .
+
+ex:Forecast_2025_11_06_001 a ex:ForecastObservation ;
+    sosa:resultTime "2025-11-06T09:00:00Z"^^xsd:dateTime ;
+    ex:predictedLevel "1.80"^^xsd:decimal ;
+    ex:predictedBy ex:PredictionModel_LSTM ;
+    fiware:refArea ex:Area_HaNoi_Center ;
+    ex:relatedEvent ex:FloodEvent_HaNoi_2025_11_05 .
