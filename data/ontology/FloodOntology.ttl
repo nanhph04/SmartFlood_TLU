@@ -1,0 +1,199 @@
+@prefix ex: <http://example.org/flood#> .
+@prefix sosa: <http://www.w3.org/ns/sosa/> .
+@prefix schema: <https://schema.org/> .
+@prefix geo: <http://www.opengis.net/ont/geosparql#> .
+@prefix fiware: <https://smartdatamodels.org/dataModel.Environment/> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix skos: <http://www.w3.org/2004/02/skos/core#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+
+####################################################################
+# ONTOLOGY METADATA
+####################################################################
+
+<http://example.org/flood> a owl:Ontology ;
+    rdfs:label "Ontology quản lý ngập đô thị (Cốt lõi)"@vi ;
+    rdfs:comment "Ontology mô tả Cảm biến, Quan sát, Sự kiện và Phản ánh của người dân, tập trung vào dữ liệu giám sát ngập hiện tại."@vi ;
+    owl:versionInfo "1.1 (Core)" ;
+    owl:versionIRI <http://example.org/flood/1.1/core> ;
+    dcterms:creator "nanhph04" ;
+    dcterms:created "2025-11-06"^^xsd:date ;
+    dcterms:modified "2025-11-06"^^xsd:date ;
+    dcterms:license <https://creativecommons.org/licenses/by/4.0/> ;
+    dcterms:publisher "Tác giả: Pham Nhat Anh" ;
+    owl:imports 
+        <http://www.w3.org/ns/sosa/> ,
+        <http://www.opengis.net/ont/geosparql> ,
+        <https://smartdatamodels.org/dataModel.Environment/> ,
+        <https://schema.org/> ;
+    rdfs:seeAlso <https://smartdatamodels.org/> .
+
+####################################################################
+# CLASSES (Cốt lõi)
+####################################################################
+
+ex:FloodSensor a owl:Class ;
+    rdfs:subClassOf sosa:Sensor ;
+    rdfs:label "Cảm biến mực nước đô thị"@vi ;
+    rdfs:comment "Thiết bị đo mực nước, đặt tại vị trí cố định hoặc di động."@vi .
+
+ex:FloodObservation a owl:Class ;
+    rdfs:subClassOf sosa:Observation ;
+    rdfs:label "Quan sát mực nước"@vi ;
+    rdfs:comment "Quan sát kết quả đo mực nước từ cảm biến hoặc nguồn dữ liệu khác."@vi .
+
+ex:WeatherObservation a owl:Class ;
+    rdfs:subClassOf sosa:Observation ;
+    rdfs:label "Quan sát thời tiết"@vi ;
+    rdfs:comment "Dữ liệu quan sát khí tượng như lượng mưa, nhiệt độ, độ ẩm,..."@vi .
+
+ex:CitizenReport a owl:Class ;
+    rdfs:subClassOf schema:Report ;
+    rdfs:label "Phản ánh của người dân"@vi ;
+    rdfs:comment "Báo cáo do công dân gửi (văn bản, ảnh, tọa độ, thời gian)."@vi .
+
+ex:FloodEvent a owl:Class ;
+    rdfs:subClassOf fiware:FloodEvent ;
+    owl:equivalentClass fiware:FloodEvent ;
+    rdfs:label "Sự kiện ngập đô thị"@vi ;
+    rdfs:comment "Sự kiện ngập tổng hợp từ nhiều quan sát và báo cáo."@vi .
+
+ex:MonitoringArea a owl:Class ;
+    rdfs:subClassOf sosa:FeatureOfInterest ;
+    rdfs:label "Khu vực giám sát"@vi ;
+    rdfs:comment "Khu vực hoặc vị trí nơi thu thập quan sát và phản ánh."@vi .
+
+ex:SeverityLevel a owl:Class ;
+    rdfs:label "Mức độ nghiêm trọng"@vi ;
+    rdfs:comment "Mức độ ngập được phân loại theo tiêu chí (Thấp, Trung bình, Nghiêm trọng)."@vi ;
+    owl:oneOf ( ex:LowSeverity ex:MediumSeverity ex:HighSeverity ) .
+
+
+####################################################################
+# OBJECT PROPERTIES (Liên kết giữa các thực thể)
+####################################################################
+
+# Quan hệ Sự kiện và Quan sát
+ex:relatedEvent a owl:ObjectProperty ;
+    rdfs:domain ex:FloodObservation ;
+    rdfs:range ex:FloodEvent ;
+    rdfs:label "Liên kết đến sự kiện ngập"@vi .
+
+ex:isCausedBy a owl:ObjectProperty ;
+    rdfs:domain ex:FloodEvent ;
+    rdfs:range ex:FloodEvent ;
+    rdfs:label "Nguyên nhân gây ra"@vi ;
+    rdfs:comment "Liên kết tới sự kiện nguyên nhân như mưa lớn, triều cường..."@vi .
+
+# Báo cáo công dân
+ex:reportedBy a owl:ObjectProperty ;
+    rdfs:domain ex:CitizenReport ;
+    rdfs:range schema:Person ;
+    rdfs:label "Người gửi phản ánh"@vi .
+
+ex:reportsEvent a owl:ObjectProperty ;
+    rdfs:domain ex:CitizenReport ;
+    rdfs:range ex:FloodEvent ;
+    rdfs:label "Báo cáo về sự kiện ngập"@vi .
+
+# Hoàn thiện: Thuộc tính liên kết vị trí cho CitizenReport
+ex:reportLocation a owl:ObjectProperty ;
+    rdfs:domain ex:CitizenReport ;
+    rdfs:range geo:Geometry ;
+    rdfs:label "Vị trí báo cáo"@vi ;
+    rdfs:comment "Vị trí do người dân gửi."@vi .
+
+# Mức độ nghiêm trọng
+ex:severity a owl:ObjectProperty ;
+    rdfs:domain ex:FloodEvent ;
+    rdfs:range ex:SeverityLevel ;
+    rdfs:label "Mức độ nghiêm trọng"@vi .
+
+# Liên kết Vị trí (GeoSPARQL)
+geo:hasGeometry a owl:ObjectProperty ;
+    rdfs:domain sosa:FeatureOfInterest ;
+    rdfs:range geo:Geometry ;
+    rdfs:label "Vị trí địa lý"@vi ;
+    rdfs:comment "Tọa độ địa lý của cảm biến hoặc khu vực giám sát."@vi .
+
+# Liên kết SOSA
+sosa:madeObservation a owl:ObjectProperty ;
+    rdfs:domain sosa:Sensor ;
+    rdfs:range sosa:Observation ;
+    rdfs:label "Thực hiện quan sát"@vi .
+
+sosa:observedProperty a owl:ObjectProperty ;
+    rdfs:domain sosa:Observation ;
+    rdfs:range sosa:ObservableProperty ;
+    rdfs:label "Thuộc tính được quan sát"@vi .
+
+sosa:hasFeatureOfInterest a owl:ObjectProperty ;
+    rdfs:domain sosa:Observation ;
+    rdfs:range sosa:FeatureOfInterest ;
+    rdfs:label "Đối tượng quan tâm (Khu vực giám sát)"@vi .
+
+# Liên kết FiWARE
+fiware:refDevice a owl:ObjectProperty ;
+    rdfs:domain sosa:Observation ;
+    rdfs:range sosa:Sensor ;
+    rdfs:label "Tham chiếu thiết bị (FiWARE)"@vi .
+
+fiware:refArea a owl:ObjectProperty ;
+    rdfs:domain sosa:Observation ;
+    rdfs:range sosa:FeatureOfInterest ;
+    rdfs:label "Tham chiếu khu vực (FiWARE)"@vi .
+
+####################################################################
+# DATATYPE PROPERTIES (Liên kết với giá trị: số, chữ, ngày...)
+####################################################################
+
+# Mực nước và thời tiết
+ex:waterLevel a owl:DatatypeProperty ;
+    rdfs:domain ex:FloodObservation ;
+    rdfs:range xsd:decimal ;
+    rdfs:label "Mực nước đo được (mét)"@vi .
+
+ex:rainLevel a owl:DatatypeProperty ;
+    rdfs:domain ex:WeatherObservation ;
+    rdfs:range xsd:decimal ;
+    rdfs:label "Lượng mưa (mm)"@vi .
+
+# Báo cáo công dân
+ex:reportedAt a owl:DatatypeProperty ;
+    rdfs:domain ex:CitizenReport ;
+    rdfs:range xsd:dateTime ;
+    rdfs:subPropertyOf schema:dateCreated ;
+    rdfs:label "Thời điểm tạo báo cáo"@vi .
+
+# Vị trí
+geo:asWKT a owl:DatatypeProperty ;
+    rdfs:domain geo:Geometry ;
+    rdfs:range geo:wktLiteral ;
+    rdfs:label "Biểu diễn tọa độ WKT"@vi .
+
+# Thời gian
+sosa:resultTime a owl:DatatypeProperty ;
+    rdfs:domain sosa:Observation ;
+    rdfs:range xsd:dateTime ;
+    rdfs:label "Thời điểm quan sát"@vi .
+
+fiware:dateObserved a owl:DatatypeProperty ;
+    rdfs:domain sosa:Observation ;
+    rdfs:range xsd:dateTime ;
+    rdfs:label "Thời gian quan sát (FiWARE)"@vi .
+
+####################################################################
+# INDIVIDUALS (Giá trị kiểm soát)
+####################################################################
+
+ex:LowSeverity a ex:SeverityLevel ;
+    skos:prefLabel "Thấp"@vi .
+
+ex:MediumSeverity a ex:SeverityLevel ;
+    skos:prefLabel "Trung bình"@vi .
+
+ex:HighSeverity a ex:SeverityLevel ;
+    skos:prefLabel "Nghiêm trọng"@vi .
