@@ -1,11 +1,6 @@
-import express from 'express';
-import cors from 'cors';
-import dotenv from 'dotenv';
-import morgan from 'morgan';
 import { dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { exec } from 'child_process';
-import http from 'http';
 import { Server } from 'socket.io';
 
 import connectDB from './configs/db.js';
@@ -15,36 +10,40 @@ import sensorRoutes from './routes/sensor.route.js';
 import { fetchAndSaveWeatherForAllAreas } from './services/weatherService.js';
 import readingRoutes from './routes/reading.route.js';
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
-
 dotenv.config();
 
+const {
+    PORT = 5001,
+    NODE_ENV = 'development',
+    CORS_ORIGIN = '*',
+    JSON_LIMIT = '5mb',
+    URLENCODED_LIMIT = '5mb',
+} = process.env;
 
-// --- App & Middleware ---
+const __dirname = dirname(fileURLToPath(import.meta.url));
 const app = express();
-app.use(cors());
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-app.use(morgan('dev'));
+
+// --- Middlewares ---
+app.use(cors({ origin: CORS_ORIGIN }));
+app.use(express.json({ limit: JSON_LIMIT }));
+app.use(express.urlencoded({ extended: true, limit: URLENCODED_LIMIT }));
+if (NODE_ENV !== 'production') app.use(morgan('dev'));
 
 // --- Routes ---
+app.get('/', (_req, res) => res.send('Chào mừng đến với API Smart Flood Management System'));
 app.use('/api/weather', weather);
 app.use('/api/streets', streetRoutes);
 app.use('/api/sensors', sensorRoutes);
-app.use('   ', readingRoutes);
+app.use('/api/readings', readingRoutes);
 
-// --- DB ---
-connectDB();
-
-// --- Root route ---
-app.get('/', (_req, res) => res.send('Chào mừng đến với API Smart Flood Management System'));
+// --- 404 handler ---
+app.use((req, res, _next) => res.status(404).json({ message: 'Not Found' }));
 
 // --- Error handler ---
-app.use((err, req, res, next) => {
-    console.error(err.stack);
-    res.status(500).json({ message: 'Internal Server Error' });
+app.use((err, _req, res, _next) => {
+    if (NODE_ENV !== 'production') console.error(err);
+    res.status(err.status || 500).json({ message: err.message || 'Internal Server Error' });
 });
-
 
 // --- Weather + Fake Sensor Data ---
 async function fetchWeatherAndFakeSensor() {
@@ -56,7 +55,6 @@ async function fetchWeatherAndFakeSensor() {
 }
 
 // --- Start server with socket.io ---
-const PORT = process.env.PORT || 5001;
 const server = http.createServer(app);
 export const io = new Server(server, { cors: { origin: '*' } });
 
@@ -64,8 +62,18 @@ io.on('connection', (socket) => {
     console.log('Client connected:', socket.id);
 });
 
-server.listen(PORT, () => {
-    console.log(`🚀 Server running on port ${PORT}`);
-    fetchWeatherAndFakeSensor();
-    setInterval(fetchWeatherAndFakeSensor, 60 * 60 * 1000);
-});
+const start = async () => {
+    try {
+        await connectDB();
+        server.listen(PORT, () => {
+            console.log(`🚀 Server running on http://localhost:${PORT}`);
+            fetchWeatherAndFakeSensor();
+            setInterval(fetchWeatherAndFakeSensor, 60 * 60 * 1000);
+        });
+    } catch (e) {
+        console.error('❌ Failed to start server:', e);
+        process.exit(1);
+    }
+};
+
+start();
