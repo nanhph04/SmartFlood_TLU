@@ -51,7 +51,24 @@ export const getLatestWeatherForAllAreas = async (req, res) => {
             if (!areaId || !coords || coords.length !== 2) continue;
             const [lon, lat] = coords;
             const weather = await getLatestWeatherByCoords(lat, lon);
-            if (weather) results.push({ areaId, lat, lon, weather });
+            if (weather) {
+                // Làm phẳng các trường value từ weather
+                results.push({
+                    id: weather.id,
+                    type: weather.type,
+                    areaId,
+                    areaName: weather.areaName?.value,
+                    temperature: weather["https://smart-data-models.github.io/data-models/terms.jsonld#/definitions/temperature"]?.value || weather.temperature?.value,
+                    humidity: weather["https://uri.fiware.org/ns/data-models#humidity"]?.value || weather.humidity?.value,
+                    rainfall: weather["https://uri.fiware.org/ns/data-models#rainfall"]?.value || weather.rainfall?.value,
+                    windSpeed: weather["https://smart-data-models.github.io/data-models/terms.jsonld#/definitions/windSpeed"]?.value || weather.windSpeed?.value,
+                    pressure: weather["https://uri.fiware.org/ns/data-models#pressure"]?.value || weather.pressure?.value,
+                    observedAt: weather.observedAt?.value,
+                    location: weather.location?.value,
+                    lat,
+                    lon
+                });
+            }
         }
         res.json(results);
     } catch (err) {

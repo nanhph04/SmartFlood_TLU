@@ -61,7 +61,29 @@ export const getAllSensors = async (req, res) => {
         const response = await axios.get(ORION_LD_URL + '?type=FloodSensor', {
             headers: { 'Accept': 'application/ld+json' }
         });
-        res.json(response.data);
+        // Làm phẳng các thuộc tính Property/GeoProperty
+        const flatten = (sensor) => {
+            const flat = { id: sensor.id, type: sensor.type };
+            for (const [k, v] of Object.entries(sensor)) {
+                if (k === "@context" || k === "id" || k === "type") continue;
+                // Lấy key ngắn nếu có
+                let key = k;
+                if (k.startsWith("https://") || k.startsWith("http://")) {
+                    // Lấy phần cuối sau dấu /
+                    key = k.split("/").pop().split("#").pop();
+                }
+                if (v && v.type === "Property") {
+                    flat[key] = v.value;
+                } else if (v && v.type === "GeoProperty" && v.value) {
+                    flat[key] = v.value;
+                } else {
+                    flat[key] = v;
+                }
+            }
+            return flat;
+        };
+        const data = Array.isArray(response.data) ? response.data.map(flatten) : [];
+        res.json(data);
     } catch (err) {
         res.status(500).json({ error: 'Không lấy được danh sách sensor' });
     }
