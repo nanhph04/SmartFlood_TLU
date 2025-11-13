@@ -70,7 +70,7 @@ const start = async () => {
             } catch (err) {
                 console.error('Error in interval fake data:', err.message);
             }
-        }, 1 * 60 * 1000); // 10 giây
+        }, 30 * 60 * 1000); // 30 phút
     } catch (e) {
         console.error('❌ Failed to start server:', e);
         process.exit(1);
