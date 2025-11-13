@@ -12,7 +12,7 @@ import connectDB from './configs/db.js';
 import weather from './routes/weather.routes.js';
 import streetRoutes from './routes/monitoringarea.route.js';
 import sensorRoutes from './routes/sensor.route.js';
-import { fetchWeatherAndFakeSensor } from './tasks.js';
+import { fetchWeather, runFakeSensorData } from './tasks.js';
 import readingRoutes from './routes/reading.route.js';
 
 dotenv.config();
@@ -65,8 +65,13 @@ const start = async () => {
         await connectDB();
         server.listen(PORT, () => {
             console.log(`🚀 Server running on http://localhost:${PORT}`);
-            fetchWeatherAndFakeSensor();
-            setInterval(fetchWeatherAndFakeSensor, 60 * 60 * 1000);
+            // Lấy weather và sinh dữ liệu cảm biến fake ngay khi khởi động
+            fetchWeather();
+            runFakeSensorData();
+            // Lấy weather mỗi 1h
+            setInterval(fetchWeather, 60 * 60 * 1000);
+            // Sinh dữ liệu cảm biến fake mỗi 10 phút
+            setInterval(runFakeSensorData, 10 * 60 * 1000);
         });
     } catch (e) {
         console.error('❌ Failed to start server:', e);
