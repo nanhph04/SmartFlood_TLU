@@ -12,7 +12,7 @@ import connectDB from './configs/db.js';
 import weather from './routes/weather.routes.js';
 import streetRoutes from './routes/monitoringarea.route.js';
 import sensorRoutes from './routes/sensor.route.js';
-import { fetchAndSaveWeatherForAllAreas } from './services/weatherService.js';
+import { fetchWeather, runFakeSensorData } from './tasks.js';
 import readingRoutes from './routes/reading.route.js';
 
 dotenv.config();
@@ -50,14 +50,7 @@ app.use((err, _req, res, _next) => {
     res.status(err.status || 500).json({ message: err.message || 'Internal Server Error' });
 });
 
-// --- Weather + Fake Sensor Data ---
-async function fetchWeatherAndFakeSensor() {
-    await fetchAndSaveWeatherForAllAreas();
-    exec('node ./src/scripts/fakeSensorData.js', { cwd: __dirname + '/../' }, (err, stdout, stderr) => {
-        if (err) console.error('Fake sensor data error:', err);
-        else console.log('Fake sensor data:', stdout);
-    });
-}
+// --- Weather + Fake Sensor Data đã được tách sang ./tasks.js ---
 
 // --- Start server with socket.io ---
 const server = http.createServer(app);
@@ -72,8 +65,13 @@ const start = async () => {
         await connectDB();
         server.listen(PORT, () => {
             console.log(`🚀 Server running on http://localhost:${PORT}`);
-            fetchWeatherAndFakeSensor();
-            setInterval(fetchWeatherAndFakeSensor, 60 * 60 * 1000);
+            // Lấy weather và sinh dữ liệu cảm biến fake ngay khi khởi động
+            fetchWeather();
+            runFakeSensorData();
+            // Lấy weather mỗi 1h
+            setInterval(fetchWeather, 60 * 60 * 1000);
+            // Sinh dữ liệu cảm biến fake mỗi 10 phút
+            setInterval(runFakeSensorData, 10 * 60 * 1000);
         });
     } catch (e) {
         console.error('❌ Failed to start server:', e);
