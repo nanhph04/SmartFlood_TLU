@@ -1,19 +1,15 @@
 import dotenv from 'dotenv';
-import { dirname } from 'path';
-import { fileURLToPath } from 'url';
-import { exec } from 'child_process';
-import { Server } from 'socket.io';
-import http from 'http';
 import express from 'express';
 import cors from 'cors';
 import morgan from 'morgan';
 
+
 import connectDB from './configs/db.js';
-import weather from './routes/weather.routes.js';
-import streetRoutes from './routes/monitoringarea.route.js';
-import sensorRoutes from './routes/sensor.route.js';
-import { fetchWeather, runFakeSensorData } from './tasks.js';
-import readingRoutes from './routes/reading.route.js';
+import apiRoutes from './api/index.js';
+import contextRoute from './api/context.api.js';
+import { setupSocket } from './socket/index.js';
+import { createFakeReadingsForAllSensors } from './scripts/fakeSensorData.js';
+
 
 dotenv.config();
 
@@ -25,24 +21,26 @@ const {
     URLENCODED_LIMIT = '5mb',
 } = process.env;
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
 const app = express();
 
 // --- Middlewares ---
 app.use(cors({ origin: CORS_ORIGIN }));
 app.use(express.json({ limit: JSON_LIMIT }));
 app.use(express.urlencoded({ extended: true, limit: URLENCODED_LIMIT }));
+// Debug: log incoming requests for troubleshooting JSON issues
+
 if (NODE_ENV !== 'production') app.use(morgan('dev'));
 
 // --- Routes ---
 app.get('/', (_req, res) => res.send('Chào mừng đến với API Smart Flood Management System'));
-app.use('/api/weather', weather);
-app.use('/api/streets', streetRoutes);
-app.use('/api/sensors', sensorRoutes);
-app.use('/api/readings', readingRoutes);
+
+// Route phục vụ context.jsonld
+app.use(contextRoute);
+
+app.use('/api', apiRoutes);
 
 // --- 404 handler ---
-app.use((req, res, _next) => res.status(404).json({ message: 'Not Found' }));
+app.use((req, res) => res.status(404).json({ message: 'Not Found' }));
 
 // --- Error handler ---
 app.use((err, _req, res, _next) => {
@@ -50,29 +48,29 @@ app.use((err, _req, res, _next) => {
     res.status(err.status || 500).json({ message: err.message || 'Internal Server Error' });
 });
 
-// --- Weather + Fake Sensor Data đã được tách sang ./tasks.js ---
-
-// --- Start server with socket.io ---
-const server = http.createServer(app);
-export const io = new Server(server, { cors: { origin: '*' } });
-
-io.on('connection', (socket) => {
-    console.log('Client connected:', socket.id);
-});
+// --- Socket.io setup ---
+const { io, server } = setupSocket(app);
+export { io };
 
 const start = async () => {
     try {
         await connectDB();
         server.listen(PORT, () => {
             console.log(`🚀 Server running on http://localhost:${PORT}`);
-            // Lấy weather và sinh dữ liệu cảm biến fake ngay khi khởi động
-            fetchWeather();
-            runFakeSensorData();
-            // Lấy weather mỗi 1h
-            setInterval(fetchWeather, 60 * 60 * 1000);
-            // Sinh dữ liệu cảm biến fake mỗi 10 phút
-            setInterval(runFakeSensorData, 10 * 60 * 1000);
         });
+
+        // --- Chạy fake data ngay sau khi server start ---
+        await createFakeReadingsForAllSensors();
+
+        // --- Set interval chạy định kỳ ---
+        setInterval(async () => {
+            console.log('--- Interval: sinh dữ liệu giả ---');
+            try {
+                await createFakeReadingsForAllSensors();
+            } catch (err) {
+                console.error('Error in interval fake data:', err.message);
+            }
+        }, 1 * 60 * 1000); // 10 giây
     } catch (e) {
         console.error('❌ Failed to start server:', e);
         process.exit(1);
@@ -80,3 +78,4 @@ const start = async () => {
 };
 
 start();
+
