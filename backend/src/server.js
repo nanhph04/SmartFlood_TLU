@@ -12,7 +12,7 @@ import connectDB from './configs/db.js';
 import weather from './routes/weather.routes.js';
 import streetRoutes from './routes/monitoringarea.route.js';
 import sensorRoutes from './routes/sensor.route.js';
-import { fetchAndSaveWeatherForAllAreas } from './services/weatherService.js';
+import { fetchWeatherAndFakeSensor } from './tasks.js';
 import readingRoutes from './routes/reading.route.js';
 
 dotenv.config();
@@ -50,14 +50,7 @@ app.use((err, _req, res, _next) => {
     res.status(err.status || 500).json({ message: err.message || 'Internal Server Error' });
 });
 
-// --- Weather + Fake Sensor Data ---
-async function fetchWeatherAndFakeSensor() {
-    await fetchAndSaveWeatherForAllAreas();
-    exec('node ./src/scripts/fakeSensorData.js', { cwd: __dirname + '/../' }, (err, stdout, stderr) => {
-        if (err) console.error('Fake sensor data error:', err);
-        else console.log('Fake sensor data:', stdout);
-    });
-}
+// --- Weather + Fake Sensor Data đã được tách sang ./tasks.js ---
 
 // --- Start server with socket.io ---
 const server = http.createServer(app);
