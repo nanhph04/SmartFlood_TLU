@@ -74,7 +74,7 @@ export default function WeatherMap() {
             .then(res => setWeatherData(res.data))
             .catch(err => console.error(err));
         // Gọi API lấy bản ghi cảm biến mới nhất của từng sensor
-        axios.get("http://localhost:5001/api/readings/latest")
+        axios.get("http://localhost:5001/api/sensors")
             .then(res => setSensorData(res.data))
             .catch(err => console.error(err));
     }, []);
@@ -104,6 +104,7 @@ export default function WeatherMap() {
 
             {/* Marker thời tiết */}
             {weatherData.map((item) => {
+                if (!item.location || !Array.isArray(item.location.coordinates)) return null;
                 const [lon, lat] = item.location.coordinates;
                 const rainfall = item.rainfall || 0;
                 return (
@@ -121,15 +122,16 @@ export default function WeatherMap() {
 
             {/* Marker cảm biến */}
             {sensorData.map((sensor) => {
+                if (!sensor.location || !Array.isArray(sensor.location.coordinates)) return null;
                 const [lon, lat] = sensor.location.coordinates;
                 return (
                     <Marker key={sensor.id} position={[lat, lon]} icon={sensorIcon}>
                         <Popup>
-                            <strong>📍 {sensor.areaName || sensor.sensorId}</strong><br />
-                            💧 Độ ngập: {sensor.waterLevel} m<br />
-                            🏠 Vị trí: {sensor.areaName || 'Chưa rõ'}<br />
-                            ⚠️ Mức cảnh báo: <span style={{ color: sensor.severity === 'high' ? '#d73027' : sensor.severity === 'medium' ? '#fee08b' : '#1a9850', fontWeight: 'bold' }}>{sensor.severity}</span><br />
-                            🕒 {new Date(sensor.observedAt).toLocaleString()}
+                            <strong>📍 {sensor.areaName || sensor.name || sensor.id}</strong><br />
+                            💧 <b>Độ ngập:</b> {sensor.waterLevel} cm<br />
+                            🏷 <b>Tên:</b> {sensor.name || 'Chưa rõ'}<br />
+                            🏠 <b>Khu vực:</b> {sensor.areaName || 'Chưa rõ'}<br />
+                            ⏱ <b>Lần đo mới nhất:</b> {sensor.lastReadingAt ? new Date(sensor.lastReadingAt).toLocaleString() : 'N/A'}<br />
                         </Popup>
                     </Marker>
                 );

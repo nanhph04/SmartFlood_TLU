@@ -1,5 +1,5 @@
 import httpStatus from 'http-status';
-import { uploadBuffer } from '../utils/cloudinary.js';
+import { uploadBuffer } from '../configs/cloudinary.js';
 
 
 export const uploadImagesHandler = async (req, res, next) => {
@@ -14,7 +14,7 @@ export const uploadImagesHandler = async (req, res, next) => {
 
     const urls = results.map((r) => r.secure_url);
     const details = results.map((r) => ({ url: r.secure_url, publicId: r.public_id }));
-    
+
     res.status(httpStatus.CREATED).json({ urls, details });
   } catch (e) { next(e); }
 };
