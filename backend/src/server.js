@@ -1,7 +1,12 @@
+import dotenv from 'dotenv';
 import { dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { exec } from 'child_process';
 import { Server } from 'socket.io';
+import http from 'http';
+import express from 'express';
+import cors from 'cors';
+import morgan from 'morgan';
 
 import connectDB from './configs/db.js';
 import weather from './routes/weather.routes.js';
