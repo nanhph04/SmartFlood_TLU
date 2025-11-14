@@ -13,27 +13,27 @@ services:
     environment:
       - NODE_ENV=development
 
-  # backend:
-  #   build:
-  #     context: ./backend
-  #     dockerfile: Dockerfile
-  #   ports:
-  #     - "5000:5000"
-  #   volumes:
-  #     - ./backend:/app
-  #     - /app/node_modules
-  #   environment:
-  #     - NODE_ENV=development
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "5001:5001"
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+    environment:
+      - NODE_ENV=development
 
-  # fuseki:
-  #   image: stain/jena-fuseki
-  #   container_name: fuseki
-  #   ports:
-  #     - "3030:3030"
-  #   volumes:
-  #     - ./fuseki:/fuseki
-  #   environment:
-  #     - ADMIN_PASSWORD=admin
+  fuseki:
+    image: stain/jena-fuseki
+    container_name: fuseki
+    ports:
+      - "3030:3030"
+    volumes:
+      - ./fuseki:/fuseki
+    environment:
+      - ADMIN_PASSWORD=admin
 
   mongo:
     image: mongo:4.4
