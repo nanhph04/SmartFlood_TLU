@@ -1,0 +1,157 @@
+/* Thiết lập chung cho font chữ và box-sizing */
+:root {
+  --header-height: 70px; /* Chiều cao cố định cho header */
+}
+
+/* Lớp chính của Header
+  - position: sticky -> Đây là chìa khóa để "luôn nằm trên màn hình khi cuộn"
+  - background, box-shadow -> Tạo kiểu như trong ảnh
+*/
+.app-header {
+  position: sticky; /* Hoặc dùng "fixed" nếu bạn muốn nó cố định tuyệt đối */
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: var(--header-height);
+  background: #ffffff; /* Nền trắng (trong ảnh có thể là gradient nhẹ, nhưng trắng là phổ biến) */
+  /* Tạo bóng mờ nhẹ bên dưới như trong ảnh */
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08); 
+  z-index: 1000; /* Luôn nằm trên cùng */
+  display: flex;
+  align-items: center;
+  padding: 0 24px; /* 24px lề trái/phải */
+  box-sizing: border-box;
+}
+
+/* Container để căn giữa nội dung và giữ lề */
+.header-container {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between; /* Đẩy 2 cụm logo và nút ra 2 bên */
+  margin: 0 auto;
+  max-width: 1800px; /* Giới hạn chiều rộng tối đa (tùy chọn) */
+}
+
+/* === Phần bên trái (Logo & Tiêu đề) === */
+.header-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px; /* Khoảng cách giữa icon và chữ */
+}
+
+.brand-icon-wrapper {
+  width: 48px;
+  height: 48px;
+  background-color: #0084ff; /* Màu xanh dương của icon */
+  border-radius: 50%; /* Bo tròn */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white; /* Màu của icon bên trong */
+  flex-shrink: 0; /* Không bị co lại */
+}
+
+.brand-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.brand-title {
+  margin: 0;
+  font-size: 1.1rem; /* Cỡ chữ 17-18px */
+  font-weight: 600;
+  color: #0A63B4; /* Màu xanh đậm cho tiêu đề */
+}
+
+.brand-subtitle {
+  margin: 0;
+  font-size: 0.8rem; /* Cỡ chữ 12-13px */
+  color: #6c757d; /* Màu xám cho phụ đề */
+}
+
+/* === Phần bên phải (Các nút điều hướng) === */
+.header-nav {
+  display: flex;
+  align-items: center;
+  gap: 12px; /* Khoảng cách giữa các nút */
+}
+
+/* Nút icon (Cảnh báo, Layer) */
+.nav-icon-button {
+  position: relative; /* Dùng để định vị badge */
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-radius: 8px; /* Bo góc vuông nhẹ */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+}
+
+.nav-icon-button:hover {
+  opacity: 0.85;
+}
+
+.alert-button {
+  background-color: #e53935; /* Màu đỏ */
+}
+
+.layers-button {
+  background-color: #f57c00; /* Màu cam */
+}
+
+/* Cái "badge" số 2 */
+.badge {
+  position: absolute;
+  top: 0px; /* Tùy chỉnh vị trí */
+  right: -2px;
+  background-color: #d32f2f; /* Màu đỏ cho badge (giống màu nút cảnh báo) */
+  color: white;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  font-size: 0.75rem;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid white; /* Viền trắng như trong ảnh */
+}
+
+/* Nút bấm (Đăng nhập, Quản lý) */
+.nav-button {
+  display: flex;
+  align-items: center;
+  gap: 6px; /* Khoảng cách giữa icon và chữ */
+  padding: 10px 16px;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1); /* Bóng mờ như ảnh */
+}
+
+.login-button {
+  background-color: #ffffff;
+  color: #333;
+  border: 1px solid #ddd; /* Viền xám mờ */
+}
+
+.login-button:hover {
+  background-color: #f8f9fa;
+}
+
+.manage-button {
+  background: linear-gradient(90deg, #C035F0, #E0239F); /* Gradient màu hồng/tím */
+  color: white;
+}
+
+.manage-button:hover {
+  opacity: 0.9;
+}
