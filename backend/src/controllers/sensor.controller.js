@@ -1,5 +1,7 @@
 import axios from "axios";
+
 import { createSensorEntity } from "../entities/FloodSensor.js";
+import { registerSensorToIoTAgent } from "../utils/registerSensorToIoTAgent.js";
 
 const ORION_LD_URL = process.env.ORION_LD_URL || 'http://localhost:1026/ngsi-ld/v1/entities';
 
@@ -7,12 +9,15 @@ const ORION_LD_URL = process.env.ORION_LD_URL || 'http://localhost:1026/ngsi-ld/
 export const createSensor = async (req, res) => {
     try {
         const entity = createSensorEntity(req.body);
-        await axios.post(ORION_LD_URL, entity, {
-            headers: { 'Content-Type': 'application/ld+json' }
+        // Đăng ký device với IoTAgent
+        await registerSensorToIoTAgent({
+            ...req.body,
+            id: entity.id,
+            location: entity.location?.value
         });
-        res.status(201).json({ message: 'Đã tạo sensor trên Orion-LD' });
+        res.status(201).json({ message: 'Đã tạo sensor trên Orion-LD và IoTAgent' });
     } catch (err) {
-        res.status(400).json({ error: 'Không tạo được sensor trên Orion-LD', detail: err.message });
+        res.status(400).json({ error: 'Không tạo được sensor', detail: err.message });
     }
 };
 

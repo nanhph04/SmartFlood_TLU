@@ -2,7 +2,6 @@ import { createObservationEntity } from "../entities/FloodObservation.js";
 import { io } from "../server.js";
 import axios from "axios";
 const ORION_LD_URL = process.env.ORION_LD_URL || 'http://localhost:1026/ngsi-ld/v1/entities';
-import { createSensorEntity } from "../entities/FloodSensor.js";
 
 // Hàm cập nhật trạng thái mới nhất vào FloodSensor
 export const updateFloodSensorStatus = async (reading) => {
@@ -30,25 +29,33 @@ export const updateFloodSensorStatus = async (reading) => {
     }
 };
 // Lấy bản ghi cảm biến mới nhất của từng sensor từ Orion-LD
-export const getLatestReadingForEachSensor = async (req, res) => {
+// Lấy trạng thái mới nhất của từng sensor (dữ liệu đã làm phẳng, dễ dùng cho FE)
+export const getLatestSensorStatus = async (req, res) => {
     try {
-        const response = await axios.get(`${ORION_LD_URL}?type=FloodObservation&limit=1000`, {
+        const response = await axios.get(`${ORION_LD_URL}?type=FloodSensor`, {
             headers: { 'Accept': 'application/ld+json' }
         });
-        const all = response.data;
-        const latestBySensor = {};
-        for (const obs of all) {
-            const sensorId = obs.refDevice?.object?.split(":").pop();
-            if (!sensorId) continue;
-            // Lấy observedAt từ cả short key và IRI
-            const getObservedAt = o => o.observedAt?.value || o["https://uri.etsi.org/ngsi-ld/observedAt"]?.value;
-            const obsTime = getObservedAt(obs);
-            const prevTime = getObservedAt(latestBySensor[sensorId]);
-            if (!latestBySensor[sensorId] || (obsTime && prevTime && new Date(obsTime) > new Date(prevTime)) || (obsTime && !prevTime)) {
-                latestBySensor[sensorId] = obs;
+        // Làm phẳng các thuộc tính Property/GeoProperty
+        const flatten = (sensor) => {
+            const flat = { id: sensor.id, type: sensor.type };
+            for (const [k, v] of Object.entries(sensor)) {
+                if (k === "@context" || k === "id" || k === "type") continue;
+                let key = k;
+                if (k.startsWith("https://") || k.startsWith("http://")) {
+                    key = k.split("/").pop().split("#").pop();
+                }
+                if (v && v.type === "Property") {
+                    flat[key] = v.value;
+                } else if (v && v.type === "GeoProperty" && v.value) {
+                    flat[key] = v.value;
+                } else {
+                    flat[key] = v;
+                }
             }
-        }
-        res.json(Object.values(latestBySensor));
+            return flat;
+        };
+        const data = Array.isArray(response.data) ? response.data.map(flatten) : [];
+        res.json(data);
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
