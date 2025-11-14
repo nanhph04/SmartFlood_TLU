@@ -1,39 +1,39 @@
 version: "3.8"
 
 services:
-  frontend:
-    build:
-      context: ./SmartFloodCity_FE
-      dockerfile: Dockerfile
-    ports:
-      - "3000:3000"
-    volumes:
-      - ./SmartFloodCity_FE:/app
-      - /app/node_modules
-    environment:
-      - NODE_ENV=development
+  # frontend:
+  #   build:
+  #     context: ./SmartFloodCity_FE
+  #     dockerfile: Dockerfile
+  #   ports:
+  #     - "3000:3000"
+  #   volumes:
+  #     - ./SmartFloodCity_FE:/app
+  #     - /app/node_modules
+  #   environment:
+  #     - NODE_ENV=development
 
-  backend:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-    ports:
-      - "5001:5001"
-    volumes:
-      - ./backend:/app
-      - /app/node_modules
-    environment:
-      - NODE_ENV=development
+  # backend:
+  #   build:
+  #     context: ./backend
+  #     dockerfile: Dockerfile
+  #   ports:
+  #     - "5001:5001"
+  #   volumes:
+  #     - ./backend:/app
+  #     - /app/node_modules
+  #   environment:
+  #     - NODE_ENV=development
 
-  fuseki:
-    image: stain/jena-fuseki
-    container_name: fuseki
-    ports:
-      - "3030:3030"
-    volumes:
-      - ./fuseki:/fuseki
-    environment:
-      - ADMIN_PASSWORD=admin
+  # fuseki:
+  #   image: stain/jena-fuseki
+  #   container_name: fuseki
+  #   ports:
+  #     - "3030:3030"
+  #   volumes:
+  #     - ./fuseki:/fuseki
+  #   environment:
+  #     - ADMIN_PASSWORD=admin
 
   mongo:
     image: mongo:4.4
@@ -50,6 +50,35 @@ services:
       - "1026:1026"
     environment:
       - ORIONLD_MONGO_HOST=mongo
+
+  mosquitto:
+    image: eclipse-mosquitto
+    container_name: mosquitto
+    ports:
+      - "1883:1883"
+      - "9001:9001"
+    volumes:
+      - ./mosquitto.conf:/mosquitto/config/mosquitto.conf
+
+  iotagent-json:
+    image: fiware/iotagent-json
+    container_name: iotagent-json
+    depends_on:
+      - mongo
+      - orion-ld
+      - mosquitto
+    ports:
+      - "4041:4041"
+    environment:
+      - IOTA_CB_HOST=orion-ld
+      - IOTA_CB_PORT=1026
+      - IOTA_NORTH_PORT=4041
+      - IOTA_MONGO_HOST=mongo
+      - IOTA_MONGO_PORT=27017
+      - IOTA_MQTT_HOST=mosquitto
+      - IOTA_MQTT_PORT=1883
+      - IOTA_DEFAULT_RESOURCE=/iot/json
+      - IOTA_LOG_LEVEL=DEBUG
 
 volumes:
   node_modules_frontend:

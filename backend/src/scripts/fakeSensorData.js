@@ -1,43 +1,22 @@
+
+import mqtt from "mqtt";
 import axios from "axios";
-import { createObservationEntity } from "../entities/FloodObservation.js";
-// Chuẩn hóa sensor: chuyển các trường IRI về tên ngắn, đảm bảo luôn có giá trị (null nếu thiếu)
-function normalizeSensor(sensor) {
-    const iriMap = {
-        name: ["name", "https://uri.etsi.org/ngsi-ld/name"],
-        areaName: ["areaName", "https://uri.etsi.org/ngsi-ld/areaName"],
-        status: ["status", "https://uri.etsi.org/ngsi-ld/status"],
-        description: ["description", "https://uri.etsi.org/ngsi-ld/description"],
-        batteryLevel: ["batteryLevel", "https://smart-data-models.github.io/data-models/terms.jsonld#/definitions/batteryLevel"],
-        waterLevel: ["waterLevel", "https://smart-data-models.github.io/data-models/terms.jsonld#/definitions/waterLevel"],
-        installedAt: ["installedAt", "https://uri.etsi.org/ngsi-ld/installedAt"],
-        lastMaintenance: ["lastMaintenance", "https://uri.etsi.org/ngsi-ld/lastMaintenance"],
-        lastReadingAt: ["lastReadingAt", "https://uri.etsi.org/ngsi-ld/lastReadingAt"],
-    };
 
-    const result = { ...sensor };
-    for (const [short, keys] of Object.entries(iriMap)) {
-        result[short] = null; // default if missing
-        for (const k of keys) {
-            if (sensor[k] && typeof sensor[k] === "object" && "value" in sensor[k]) {
-                result[short] = sensor[k].value;
-                break;
-            }
+const ORION_LD_URL = process.env.ORION_LD_URL;
+const IOTAGENT_URL = process.env.IOTAGENT_URL;
+const MQTT_BROKER_URL = process.env.MQTT_BROKER_URL || 'mqtt://localhost:1883';
+
+// ========== Helper Functions ==========
+
+// Lấy danh sách sensor đã đăng ký ở IoTAgent
+async function getAllRegisteredSensors() {
+    const res = await axios.get(`${IOTAGENT_URL}/iot/devices`, {
+        headers: {
+            'fiware-service': 'openiot',
+            'fiware-servicepath': '/'
         }
-    }
-    return result;
-}
-
-
-
-
-const ORION_LD_URL = process.env.ORION_LD_URL || 'http://localhost:1026/ngsi-ld/v1/entities';
-
-// Lấy danh sách sensor từ Orion-LD
-async function getAllSensors() {
-    const res = await axios.get(`${ORION_LD_URL}?type=FloodSensor`, {
-        headers: { 'Accept': 'application/ld+json' }
     });
-    return res.data;
+    return res.data.devices || [];
 }
 
 // Lấy weather gần nhất cho sensor (nếu có)
@@ -46,7 +25,6 @@ async function getNearestWeather(sensor) {
         headers: { 'Accept': 'application/ld+json' }
     });
     const weathers = res.data;
-    // Tìm weather gần nhất theo khoảng cách
     let minDist = Infinity, nearest = null;
     for (const w of weathers) {
         const coords = w.location?.value?.coordinates;
@@ -62,17 +40,24 @@ async function getNearestWeather(sensor) {
     return nearest;
 }
 
-async function fakeReading(sensor) {
-    const s = normalizeSensor(sensor);
-
-    // location an toàn
-    let location = s.location || sensor["https://uri.etsi.org/ngsi-ld/location"];
-    if (!location?.value?.coordinates || !Array.isArray(location.value.coordinates)) {
-        console.warn(`Sensor ${s.id} thiếu location, bỏ qua.`, s);
+// Sinh dữ liệu giả cho 1 sensor (dùng location, weather gần nhất)
+async function generateFakeReading(sensor) {
+    // Lấy location an toàn
+    let location = sensor.location || sensor["https://uri.etsi.org/ngsi-ld/location"];
+    if (!location) {
+        if (Array.isArray(sensor.static_attributes)) {
+            const locAttr = sensor.static_attributes.find(attr => attr.name === "location");
+            if (locAttr && locAttr.value && Array.isArray(locAttr.value.coordinates)) {
+                location = locAttr.value;
+            }
+        }
+    }
+    if (!location?.coordinates || !Array.isArray(location.coordinates)) {
+        console.warn(`Sensor ${sensor.device_id || sensor.id || sensor.name} thiếu location, bỏ qua.`, sensor);
         return null;
     }
 
-    const weather = await getNearestWeather(s);
+    const weather = await getNearestWeather({ location: { value: { coordinates: location.coordinates } } });
     const temperature = weather?.temperature?.value
         ? +(weather.temperature.value + (Math.random() - 0.5) * 1.5).toFixed(1)
         : +(20 + Math.random() * 15).toFixed(1);
@@ -88,52 +73,67 @@ async function fakeReading(sensor) {
         waterLevel = +(Math.random() * 2).toFixed(2);
     }
 
-    const severity = waterLevel > 1.5 ? "high" : waterLevel > 1 ? "medium" : "low";
-
-    return createObservationEntity({
-        sensorId: s.id,
-        longitude: location.value.coordinates[0],
-        latitude: location.value.coordinates[1],
-        waterLevel,
-        temperature,
-        humidity,
-        observedAt: new Date().toISOString(),
-        severity
-    });
-}
-
-
-// Gửi dữ liệu giả lên Orion-LD
-async function createFakeReadingsForAllSensors() {
-    const sensors = await getAllSensors();
-    console.log(`--- Sinh dữ liệu giả cho ${sensors.length} sensor ---`);
-    for (const sensor of sensors) {
-        let entity = await fakeReading(sensor);
-        if (!entity) continue; // Bỏ qua sensor không hợp lệ
-        // Filter out undefined/null properties (top-level only)
-        entity = Object.fromEntries(Object.entries(entity).filter(([k, v]) => v !== undefined && v !== null));
-        // If observedAt is present, ensure it uses the IRI key for strict NGSI-LD compliance
-        if (entity.observedAt) {
-            entity["https://uri.etsi.org/ngsi-ld/observedAt"] = entity.observedAt;
-            delete entity.observedAt;
-        }
-        try {
-            await axios.post(ORION_LD_URL, entity, {
-                headers: { 'Content-Type': 'application/ld+json' }
-            });
-            // console.log(`Created fake reading for sensor ${sensor.id}`);
-        } catch (err) {
-            if (err.response && err.response.status === 409) {
-                // Nếu đã tồn tại thì PATCH
-                await axios.patch(`${ORION_LD_URL}/${encodeURIComponent(entity.id)}/attrs`, entity, {
-                    headers: { 'Content-Type': 'application/ld+json' }
-                });
-                // console.log(`Patched fake reading for sensor ${sensor.id}`);
-            } else {
-                console.error('Error creating fake reading:', err.message);
-            }
+    // Lấy name từ attributes nếu có
+    let name = undefined;
+    if (Array.isArray(sensor.attributes)) {
+        const nameAttr = sensor.attributes.find(attr => attr.name === "name");
+        if (nameAttr && nameAttr.value) {
+            name = nameAttr.value;
         }
     }
+    return {
+        name,
+        status: sensor.status?.value || sensor.status || "active",
+        waterLevel,
+        batteryLevel: sensor.batteryLevel?.value || sensor.batteryLevel || Math.floor(50 + Math.random() * 50),
+        lastReadingAt: new Date().toISOString(),
+    };
+}
+
+// ========== Main Script ==========
+
+/**
+ * Gửi dữ liệu giả lên MQTT cho các sensor đã đăng ký ở IoTAgent
+ * Kết nối tới MQTT broker, gửi dữ liệu cho từng sensor, log kết quả tổng hợp
+ */
+async function createFakeReadingsForAllSensors() {
+    const sensors = await getAllRegisteredSensors();
+    console.log(`--- Sinh dữ liệu giả cho ${sensors.length} sensor đã đăng ký ở IoTAgent (gửi qua MQTT) ---`);
+    let successCount = 0;
+    let skipCount = 0;
+    const mqttClient = mqtt.connect(MQTT_BROKER_URL);
+
+    mqttClient.on("connect", () => {
+        console.log(`[MQTT] Đã kết nối tới broker ${MQTT_BROKER_URL}`);
+        (async () => {
+            for (const sensor of sensors) {
+                const payload = await generateFakeReading(sensor);
+                if (!payload) {
+                    skipCount++;
+                    console.warn(`[SKIP] Sensor ${sensor.device_id || sensor.name} không hợp lệ, bỏ qua.`);
+                    continue;
+                }
+                let topic = `sensors/${sensor.device_id || sensor.id || sensor.name}`;
+                if (sensor.endpoint) topic = sensor.endpoint;
+                mqttClient.publish(topic, JSON.stringify(payload), { qos: 0 }, (err) => {
+                    if (err) {
+                        console.error(`[MQTT] Lỗi gửi tới ${topic}:`, err.message);
+                    } else {
+                        successCount++;
+                    }
+                });
+            }
+            setTimeout(() => {
+                console.log(`[MQTT] Đã gửi thành công cho ${successCount}/${sensors.length} sensor, bỏ qua ${skipCount} sensor.`);
+                console.log("[MQTT] Đóng kết nối MQTT");
+                mqttClient.end();
+            }, 1000);
+        })();
+    });
+
+    mqttClient.on("error", (err) => {
+        console.error("[MQTT] Lỗi kết nối broker:", err.message);
+    });
 }
 
 export { createFakeReadingsForAllSensors };
