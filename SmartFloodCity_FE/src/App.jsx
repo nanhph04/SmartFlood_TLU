@@ -1,39 +1,40 @@
-import WeatherMap from "./components/WeatherMap";
-import Header from './layouts/Header/Header';
-import SearchPanel from "./layouts/SearchPanel/SearchPanel";
-import LoginModal from "./layouts/LoginModal/LoginModal";
-import React, { useState } from 'react';
-import InfoPanel from "./layouts/InfoPanel/InfoPanel";
+import { Routes, Route, Navigate } from "react-router-dom";
+import LoginPage from "./pages/LoginPage";
+import ClientPage from "./pages/ClientPage";
 
-function App() {
+import ProtectedRoute from "./routes/ProtectedRoute";
+import AdminLayout from "./components/layout/AdminLayout";
 
-  //Tạo state để quản lý việc mở/đóng modal
-  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+import OverviewPage from "./pages/OverviewPage";
+import SensorsPage from "./pages/SensorsPage";
+import ReportsPage from "./pages/ReportsPage";
+import AnalyticsPage from "./pages/AnalyticsPage";
 
-  //Tạo các hàm để thay đổi state
-  const openLoginModal = () => setIsLoginModalOpen(true);
-  const closeLoginModal = () => setIsLoginModalOpen(false);
-
+export default function App() {
   return (
-    <>
-      <Header onLoginClick={openLoginModal} />
+    <Routes>
+      {/* Public routes */}
+      <Route path="/login" element={<LoginPage />} />
+      <Route path="/" element={<ClientPage />} />
 
-      <div className="search-panel-container">
-        <SearchPanel />
-      </div>
+      {/* Admin routes (protected) */}
+      <Route
+        path="/admin"
+        element={
+            <AdminLayout />
+        }
+      >
+        {/* /admin -> tự redirect sang /admin/overview */}
+        <Route index element={<Navigate to="overview" replace />} />
 
-      <div style={{ height: '24px' }} />
-      <InfoPanel />
-      <div style={{ height: '24px' }} />
+        <Route path="overview" element={<OverviewPage />} />
+        <Route path="sensors" element={<SensorsPage />} />
+        <Route path="reports" element={<ReportsPage />} />
+        <Route path="analytics" element={<AnalyticsPage />} />
+      </Route>
 
-      <div>
-        <h1 style={{ textAlign: "center" }}>🌦 Bản đồ thời tiết theo điểm</h1>
-        <WeatherMap />
-      </div>
-
-      {isLoginModalOpen && <LoginModal onClose={closeLoginModal} />}
-    </>
+      {/* fallback cho route lạ */}
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
   );
 }
-
-export default App;

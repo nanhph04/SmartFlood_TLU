@@ -35,7 +35,7 @@ const fetchHeaderData = () => {
 // COMPONENT HEADER
 // -----------------------------------------------------------------
 
-function Header({ onLoginClick }) {
+function Header() {
     const [alertCount, setAlertCount] = useState(0);
     const [layerCount, setLayerCount] = useState(0);
 
@@ -91,12 +91,6 @@ function Header({ onLoginClick }) {
                             <span className="badge">{layerCount}</span>
                         )}
                     </button>
-
-                    <button className="nav-button login-button" onClick={onLoginClick}>
-                        <IoLogInOutline size={20} />
-                        <span>Đăng nhập</span>
-                    </button>
-
 
                 </nav>
             </div>
