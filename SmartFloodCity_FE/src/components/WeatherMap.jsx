@@ -81,7 +81,7 @@ export default function WeatherMap() {
         axios.get("http://localhost:5001/api/weather")
             .then(res => setWeatherData(res.data))
             .catch(err => console.error(err));
-        axios.get("http://localhost:5001/api/readings/latest")
+        axios.get("http://localhost:5001/api/sensors")
             .then(res => setSensorData(res.data))
             .catch(err => console.error(err));
     }, []);
