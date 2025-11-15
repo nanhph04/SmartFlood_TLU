@@ -55,13 +55,13 @@ async function startServer() {
         });
 
         // Gửi fake data ngay sau khi server start
-        await createFakeReadingsForAllSensors();
+      //  await createFakeReadingsForAllSensors();
 
         // Đặt interval gửi fake data định kỳ (30 phút)
         setInterval(async () => {
             console.log('--- Interval: sinh dữ liệu giả ---');
             try {
-                await createFakeReadingsForAllSensors();
+               // await createFakeReadingsForAllSensors();
             } catch (err) {
                 console.error('Error in interval fake data:', err.message);
             }

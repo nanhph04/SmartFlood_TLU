@@ -21,10 +21,12 @@ export default function App() {
       <Route
         path="/admin"
         element={
+          <ProtectedRoute requiredRole="admin">
             <AdminLayout />
+          </ProtectedRoute>
         }
       >
-        {/* /admin -> tự redirect sang /admin/overview */}
+        {/* /admin -> redirect sang /admin/overview */}
         <Route index element={<Navigate to="overview" replace />} />
 
         <Route path="overview" element={<OverviewPage />} />

@@ -15,6 +15,6 @@ router.use("/weather", weatherApi);
 router.use("/areas", areaApi);
 router.use("/reports", reportApi);
 router.use("/auth", authApi);
-router.use("/upload", uploadApi);
+router.use("/uploads", uploadApi);
 
 export default router;
