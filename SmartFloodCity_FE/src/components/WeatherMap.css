@@ -1,0 +1,77 @@
+/* File: src/components/WeatherMap/WeatherMap.css */
+
+/* 1. Khung chứa chính (wrapper) */
+.map-wrapper {
+  position: relative; /* Dùng để định vị tag vị trí */
+  background: linear-gradient(180deg, #f7faff 0%, #ffffff 100%);
+  border-radius: 20px;
+  padding: 20px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.07);
+  border: 1px solid #e9ecef;
+}
+
+/* 2. Tiêu đề và Chú thích (Legend) */
+.map-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  padding: 0 4px; /* Căn lề nhẹ */
+}
+
+.map-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #0056b3; /* Màu xanh đậm */
+  margin: 0;
+}
+
+.map-legend {
+  display: flex;
+  gap: 20px; /* Khoảng cách giữa các mục */
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.9rem;
+  color: #555;
+  font-weight: 500;
+}
+
+/* Các chấm màu của chú thích */
+.legend-color {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid rgba(0,0,0,0.1);
+}
+.legend-color.normal { background-color: #28a745; } /* Xanh lá */
+.legend-color.warning { background-color: #ffc107; } /* Vàng */
+.legend-color.danger { background-color: #dc3545; } /* Đỏ */
+
+/* 3. Tag vị trí ở góc dưới */
+.map-footer-tag {
+  position: absolute;
+  bottom: 40px; /* Nằm trên map, cách 20px padding + 20px lề */
+  left: 40px;
+  z-index: 401; /* Nằm trên MapContainer (z-index 400) */
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #333;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+/* 4. CSS cho các icon mới */
+.custom-marker {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.9;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+}

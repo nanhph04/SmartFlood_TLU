@@ -45,3 +45,10 @@
 .read-the-docs {
   color: #888;
 }
+
+.search-panel-container {
+  position: absolute; /* Nổi lên trên */
+  top: 90px; /* 70px (chiều cao Header) + 20px (khoảng đệm) */
+  left: 20px;
+  z-index: 900; /* Nằm bên dưới Header (1000) nhưng trên bản đồ */
+}
