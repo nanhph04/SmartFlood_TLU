@@ -8,6 +8,7 @@ import apiRoutes from './api/index.js';
 import contextRoute from './api/context.api.js';
 import { setupSocket } from './socket/index.js';
 import { createFakeReadingsForAllSensors } from './scripts/fakeSensorData.js';
+import { ensureFloodSensorSubscription, ensureWeatherSubscription } from './utils/createFloodSensorSubscription.js';
 
 // ========== Load Environment Variables ==========
 dotenv.config();
@@ -54,7 +55,11 @@ async function startServer() {
             console.log(`🚀 Server running on http://localhost:${PORT}`);
         });
 
-        // Gửi fake data ngay sau khi server start
+        // Ensure NGSI-LD subscriptions exist
+        await ensureFloodSensorSubscription();
+        await ensureWeatherSubscription();
+
+        // Gửi fake data ngay sau khi server start (demo purposes)
         await createFakeReadingsForAllSensors();
 
         // Đặt interval gửi fake data định kỳ (30 phút)
@@ -65,7 +70,7 @@ async function startServer() {
             } catch (err) {
                 console.error('Error in interval fake data:', err.message);
             }
-        }, 30 * 60 * 1000);
+        }, 1 * 60 * 1000);
     } catch (e) {
         console.error('Failed to start server:', e);
         process.exit(1);

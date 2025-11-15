@@ -77,16 +77,50 @@ export default function WeatherMap() {
     const [sensorData, setSensorData] = useState([]);
     const [socket] = useState(() => io("http://localhost:5001"));
 
+    // Helper: convert NGSI-LD FloodSensor entity (keyValues format) to flat format used by map
+    const flattenFloodSensor = (ent) => {
+        if (!ent) return null;
+        // keyValues format from Orion-LD: properties are direct values, not nested objects
+        const waterLevel = ent.waterLevel;
+        const location = ent.location;
+        const observedAt = ent.lastReadingAt ?? ent.observedAt ?? new Date().toISOString();
+        const areaName = ent.areaName;
+        const sensorId = ent.id?.split(':').pop();
+        const status = ent.status;
+        // Severity heuristic
+        let severity = status || 'normal';
+        if (typeof waterLevel === 'number') {
+            if (waterLevel >= 0.7) severity = 'high';
+            else if (waterLevel >= 0.3) severity = 'medium';
+        }
+        return {
+            id: ent.id,
+            sensorId,
+            waterLevel,
+            location,
+            areaName,
+            status,
+            severity,
+            observedAt
+        };
+    };
+
+    const normalizeInitialSensors = (arr) => arr.map(s => {
+        const flat = flattenFloodSensor({ ...s, id: s.id || s.id, lastReadingAt: s.lastReadingAt });
+        return flat;
+    });
+
     useEffect(() => {
         axios.get("http://localhost:5001/api/weather")
             .then(res => setWeatherData(res.data))
             .catch(err => console.error(err));
         axios.get("http://localhost:5001/api/sensors")
-            .then(res => setSensorData(res.data))
+            .then(res => setSensorData(normalizeInitialSensors(res.data)))
             .catch(err => console.error(err));
     }, []);
 
     useEffect(() => {
+        // Legacy event name
         socket.on("sensor-update", (newReading) => {
             setSensorData(prev => {
                 const idx = prev.findIndex(r => r.sensorId === newReading.sensorId);
@@ -98,7 +132,55 @@ export default function WeatherMap() {
                 return [...prev, newReading];
             });
         });
-        return () => socket.off("sensor-update");
+
+        // New NGSI-LD driven updates for FloodSensor
+        socket.on('floodSensorUpdate', (entity) => {
+            console.log('[WebSocket] Received floodSensorUpdate:', entity);
+            const flat = flattenFloodSensor(entity);
+            if (!flat || !flat.location?.coordinates) {
+                console.warn('[WebSocket] Invalid entity or missing location:', entity);
+                return;
+            }
+
+            setSensorData(prev => {
+                const idx = prev.findIndex(s => s.id === flat.id);
+                if (idx !== -1) {
+                    const updated = [...prev];
+                    updated[idx] = { ...updated[idx], ...flat };
+                    console.log('[WebSocket] Updated sensor:', flat.id);
+                    return updated;
+                }
+                console.log('[WebSocket] Added new sensor:', flat.id);
+                return [...prev, flat];
+            });
+        });
+
+        // New NGSI-LD driven updates for WeatherObservation
+        socket.on('weatherUpdate', (entity) => {
+            console.log('[WebSocket] Received weatherUpdate:', entity);
+            if (!entity || !entity.location?.coordinates) {
+                console.warn('[WebSocket] Invalid weather entity or missing location:', entity);
+                return;
+            }
+
+            setWeatherData(prev => {
+                const idx = prev.findIndex(w => w.id === entity.id);
+                if (idx !== -1) {
+                    const updated = [...prev];
+                    updated[idx] = { ...updated[idx], ...entity };
+                    console.log('[WebSocket] Updated weather:', entity.id);
+                    return updated;
+                }
+                console.log('[WebSocket] Added new weather:', entity.id);
+                return [...prev, entity];
+            });
+        });
+
+        return () => {
+            socket.off("sensor-update");
+            socket.off("floodSensorUpdate");
+            socket.off("weatherUpdate");
+        };
     }, [socket]);
     // --- KẾT THÚC PHẦN LOGIC ---
 
