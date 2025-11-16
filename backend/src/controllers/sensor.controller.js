@@ -1,3 +1,4 @@
+
 import axios from "axios";
 import mqtt from "mqtt";
 import { registerSensorToIoTAgent } from "../utils/registerSensorToIoTAgent.js";
@@ -126,6 +127,14 @@ export const getAllSensors = async (req, res) => {
                     flat[key] = v;
                 }
             }
+            // Thêm trường severity dựa vào waterLevel
+            let severity = 'binhthuong';
+            const wl = flat.waterLevel;
+            if (typeof wl === 'number') {
+                if (wl >= 0.7) severity = 'nguyhiem';
+                else if (wl >= 0.3) severity = 'canhbao';
+            }
+            flat.severity = severity;
             return flat;
         };
         const data = Array.isArray(response.data) ? response.data.map(flatten) : [];
@@ -186,6 +195,20 @@ export const seedAllSensors = async (_req, res) => {
         res.status(500).json({ error: "Seed all sensors failed", detail: err.message });
     }
 };
-
+// Xóa cảm biến
+export const deleteSensor = async (req, res) => {
+    try {
+        const { id } = req.params;
+        await axios.delete(`${ORION_LD_URL}/${id}`, {
+            headers: {
+                "Fiware-Service": "openiot",
+                "Fiware-ServicePath": "/"
+            }
+        });
+        res.json({ message: "Đã xóa sensor khỏi Orion-LD" });
+    } catch (err) {
+        res.status(400).json({ error: "Không xóa được sensor khỏi Orion-LD" });
+    }
+};
 // Xuất dữ liệu NGSI-LD (lấy toàn bộ sensor dạng NGSI-LD)
 export const exportSensorsNGSILD = getAllSensors;

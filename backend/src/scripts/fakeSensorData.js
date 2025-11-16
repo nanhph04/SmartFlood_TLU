@@ -81,10 +81,17 @@ async function generateFakeReading(sensor) {
             name = nameAttr.value;
         }
     }
+    // Xác định mức độ cảnh báo dựa vào waterLevel
+    let severity = 'binhthuong';
+    if (typeof waterLevel === 'number') {
+        if (waterLevel >= 0.7) severity = 'nguyhiem';
+        else if (waterLevel >= 0.3) severity = 'canhbao';
+    }
     return {
         name,
         status: sensor.status?.value || sensor.status || "active",
         waterLevel,
+        severity, // Thêm trường mức độ cảnh báo
         batteryLevel: sensor.batteryLevel?.value || sensor.batteryLevel || Math.floor(50 + Math.random() * 50),
         lastReadingAt: new Date().toISOString(),
     };

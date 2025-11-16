@@ -1,5 +1,6 @@
 import express from "express";
-import { createSensor, getAllSensors, getSensorsByStreet, exportSensorsNGSILD, getSensorById, updateSensor, getSensorDetail, seedSensor, seedAllSensors } from "../controllers/sensor.controller.js";
+import { createSensor, getAllSensors, getSensorsByStreet, exportSensorsNGSILD, getSensorById, updateSensor, getSensorDetail, seedSensor, seedAllSensors, deleteSensor } from "../controllers/sensor.controller.js";
+
 
 const router = express.Router();
 
@@ -14,5 +15,5 @@ router.get("/ngsi-ld", exportSensorsNGSILD);
 router.get("/:id", getSensorById);
 router.patch("/:id", updateSensor);
 router.get("/detail/:id", getSensorDetail);
-
+router.delete("/:id", deleteSensor);
 export default router;
