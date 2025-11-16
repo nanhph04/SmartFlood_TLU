@@ -15,7 +15,7 @@ export const createReport = async (payload) => {
 };
 
 export const listReports = async ({
-  status,
+  status = 'pending',
   page = 1,
   limit = 20,
   city,
@@ -54,6 +54,14 @@ export const listReports = async ({
   ]);
 
   return { items, page, limit, total, pages: Math.ceil(total / limit) };
+};
+
+export const getListPendingReports = async (params = {}) => {
+  return listReports({ ...params, status: "pending" });
+};
+
+export const getListApprovedReports = async (params = {}) => {
+  return listReports({ ...params, status: "approved" });
 };
 
 export const getReportById = async (id) => {

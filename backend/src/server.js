@@ -66,7 +66,7 @@ async function startServer() {
         setInterval(async () => {
             console.log('--- Interval: sinh dữ liệu giả ---');
             try {
-                await createFakeReadingsForAllSensors();
+               // await createFakeReadingsForAllSensors();
             } catch (err) {
                 console.error('Error in interval fake data:', err.message);
             }
