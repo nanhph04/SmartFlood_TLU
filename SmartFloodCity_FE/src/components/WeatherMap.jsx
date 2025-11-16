@@ -1,16 +1,14 @@
 // File: src/components/WeatherMap/WeatherMap.jsx
-
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import { useEffect, useState } from "react";
 import { io } from "socket.io-client";
 import axios from "axios";
 import L from "leaflet";
 
-// 1. IMPORT CSS MỚI
 import "./WeatherMap.css";
 import "leaflet/dist/leaflet.css";
 
-// Fix icon default của Leaflet (GIỮ NGUYÊN)
+
 import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
 import markerIcon from 'leaflet/dist/images/marker-icon.png';
 import markerShadow from 'leaflet/dist/images/marker-shadow.png';
@@ -21,22 +19,19 @@ L.Icon.Default.mergeOptions({
     shadowUrl: markerShadow
 });
 
-// -----------------------------------------------------------------
-// 2. TẠO CÁC HÀM ICON MỚI (THAY THẾ CÁC SVG CŨ)
-// -----------------------------------------------------------------
 
-// Hàm tạo icon CẢM BIẾN (Hình tròn)
+
+
 const getSensorIcon = (severity) => {
+    // severity: 'binhthuong', 'canhbao', 'nguyhiem'
     let color = "#28a745"; // Xanh (Bình thường)
-    if (severity === 'medium') {
+    if (severity === 'canhbao') {
         color = "#ffc107"; // Vàng (Cảnh báo)
-    } else if (severity === 'high') {
+    } else if (severity === 'nguyhiem') {
         color = "#dc3545"; // Đỏ (Nguy hiểm)
     }
-
-    // Dùng L.DivIcon để tạo icon bằng HTML/CSS (SVG)
     return new L.DivIcon({
-        className: 'custom-marker', // Lớp CSS chung
+        className: 'custom-marker',
         html: `
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <circle cx="12" cy="12" r="10" fill="${color}" stroke="#ffffff" stroke-width="2"/>
@@ -48,11 +43,9 @@ const getSensorIcon = (severity) => {
     });
 };
 
-// Hàm tạo icon THỜI TIẾT (Hình tam giác)
-const getWeatherIcon = (rainfall) => {
-    // Trong ảnh, tam giác có màu cam và đỏ
-    let color = rainfall >= 20 ? "#d73027" : "#fc8d59"; // Đỏ (nhiều) hoặc Cam (ít)
 
+const getWeatherIcon = (rainfall) => {
+    let color = rainfall >= 20 ? "#d73027" : "#fc8d59";
     return new L.DivIcon({
         className: 'custom-marker',
         html: `
@@ -67,26 +60,48 @@ const getWeatherIcon = (rainfall) => {
 };
 
 
-// -----------------------------------------------------------------
-// COMPONENT CHÍNH (LOGIC GIỮ NGUYÊN, JSX THAY ĐỔI)
-// -----------------------------------------------------------------
-
 export default function WeatherMap() {
-    // --- PHẦN LOGIC DATA CỦA BẠN (GIỮ NGUYÊN) ---
     const [weatherData, setWeatherData] = useState([]);
     const [sensorData, setSensorData] = useState([]);
     const [socket] = useState(() => io("http://localhost:5001"));
+
+    const flattenFloodSensor = (ent) => {
+        if (!ent) return null;
+        const waterLevel = ent.waterLevel;
+        const location = ent.location;
+        const observedAt = ent.lastReadingAt ?? ent.observedAt ?? new Date().toISOString();
+        const areaName = ent.areaName;
+        const sensorId = ent.id?.split(':').pop();
+        const status = ent.status;
+        const severity = ent.severity || 'binhthuong';
+        return {
+            id: ent.id,
+            sensorId,
+            waterLevel,
+            location,
+            areaName,
+            status,
+            severity,
+            observedAt
+        };
+    };
+
+    const normalizeInitialSensors = (arr) => arr.map(s => {
+        const flat = flattenFloodSensor({ ...s, id: s.id || s.id, lastReadingAt: s.lastReadingAt });
+        return flat;
+    });
 
     useEffect(() => {
         axios.get("http://localhost:5001/api/weather")
             .then(res => setWeatherData(res.data))
             .catch(err => console.error(err));
-        axios.get("http://localhost:5001/api/readings/latest")
-            .then(res => setSensorData(res.data))
+        axios.get("http://localhost:5001/api/sensors")
+            .then(res => setSensorData(normalizeInitialSensors(res.data)))
             .catch(err => console.error(err));
     }, []);
 
     useEffect(() => {
+        // Legacy event name
         socket.on("sensor-update", (newReading) => {
             setSensorData(prev => {
                 const idx = prev.findIndex(r => r.sensorId === newReading.sensorId);
@@ -98,7 +113,55 @@ export default function WeatherMap() {
                 return [...prev, newReading];
             });
         });
-        return () => socket.off("sensor-update");
+
+        // New NGSI-LD driven updates for FloodSensor
+        socket.on('floodSensorUpdate', (entity) => {
+            console.log('[WebSocket] Received floodSensorUpdate:', entity);
+            const flat = flattenFloodSensor(entity);
+            if (!flat || !flat.location?.coordinates) {
+                console.warn('[WebSocket] Invalid entity or missing location:', entity);
+                return;
+            }
+
+            setSensorData(prev => {
+                const idx = prev.findIndex(s => s.id === flat.id);
+                if (idx !== -1) {
+                    const updated = [...prev];
+                    updated[idx] = { ...updated[idx], ...flat };
+                    console.log('[WebSocket] Updated sensor:', flat.id);
+                    return updated;
+                }
+                console.log('[WebSocket] Added new sensor:', flat.id);
+                return [...prev, flat];
+            });
+        });
+
+        // New NGSI-LD driven updates for WeatherObservation
+        socket.on('weatherUpdate', (entity) => {
+            console.log('[WebSocket] Received weatherUpdate:', entity);
+            if (!entity || !entity.location?.coordinates) {
+                console.warn('[WebSocket] Invalid weather entity or missing location:', entity);
+                return;
+            }
+
+            setWeatherData(prev => {
+                const idx = prev.findIndex(w => w.id === entity.id);
+                if (idx !== -1) {
+                    const updated = [...prev];
+                    updated[idx] = { ...updated[idx], ...entity };
+                    console.log('[WebSocket] Updated weather:', entity.id);
+                    return updated;
+                }
+                console.log('[WebSocket] Added new weather:', entity.id);
+                return [...prev, entity];
+            });
+        });
+
+        return () => {
+            socket.off("sensor-update");
+            socket.off("floodSensorUpdate");
+            socket.off("weatherUpdate");
+        };
     }, [socket]);
     // --- KẾT THÚC PHẦN LOGIC ---
 
@@ -106,7 +169,6 @@ export default function WeatherMap() {
     // --- 3. THAY ĐỔI JSX ĐỂ GIỐNG VỚI ẢNH ---
     return (
         <div className="map-wrapper">
-
             {/* Tiêu đề và Chú thích (Legend) */}
             <div className="map-header">
                 <h2 className="map-title">Bản đồ giám sát ngập lụt</h2>
@@ -123,14 +185,12 @@ export default function WeatherMap() {
                 </div>
             </div>
 
-            {/* MapContainer được bo góc và có chiều cao cố định */}
             <MapContainer
                 center={[21.03, 105.85]}
-                zoom={12} // Zoom vào gần hơn 1 chút
+                zoom={12}
                 style={{ height: "600px", width: "100%", borderRadius: "16px", zIndex: 400 }}
-                scrollWheelZoom={false} // Tắt zoom bằng cuộn chuột cho đẹp
+                scrollWheelZoom={false}
             >
-                {/* 4. THAY ĐỔI NỀN BẢN ĐỒ */}
                 <TileLayer
                     attribution='&copy; <a href="https://carto.com/attributions">CARTO</a>'
                     url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
@@ -144,7 +204,6 @@ export default function WeatherMap() {
                         <Marker
                             key={item.id}
                             position={[lat, lon]}
-                            // 5. SỬ DỤNG ICON MỚI
                             icon={getWeatherIcon(rainfall)}
                         >
                             <Popup>
@@ -161,17 +220,26 @@ export default function WeatherMap() {
                 {/* Marker cảm biến (Hình tròn) */}
                 {sensorData.map((sensor) => {
                     const [lon, lat] = sensor.location.coordinates;
+                    // Dùng tiếng Việt cho mức cảnh báo
+                    let severityLabel = 'Bình thường';
+                    if (sensor.severity === 'canhbao') severityLabel = 'Cảnh báo';
+                    else if (sensor.severity === 'nguyhiem') severityLabel = 'Nguy hiểm';
+                    // Dùng tiếng Việt cho trạng thái sensor
+                    let statusLabel = 'Không xác định';
+                    if (sensor.status === 'active') statusLabel = 'Đang hoạt động';
+                    else if (sensor.status === 'inactive') statusLabel = 'Không hoạt động';
+                    else if (sensor.status === 'error') statusLabel = 'Lỗi';
                     return (
                         <Marker
                             key={sensor.id}
                             position={[lat, lon]}
-                            // 6. SỬ DỤNG ICON MỚI
                             icon={getSensorIcon(sensor.severity)}
                         >
                             <Popup>
                                 <strong>📍 {sensor.areaName || sensor.sensorId} (Cảm biến)</strong><br />
                                 💧 Độ ngập: {sensor.waterLevel} m<br />
-                                ⚠️ Cảnh báo: <span style={{ fontWeight: 'bold' }}>{sensor.severity}</span><br />
+                                ⚠️ Mức độ ngập: <span style={{ fontWeight: 'bold' }}>{severityLabel}</span><br />
+                                🔌 Trạng thái cảm biến: <span style={{ fontWeight: 'bold' }}>{statusLabel}</span><br />
                                 🕒 {new Date(sensor.observedAt).toLocaleString()}
                             </Popup>
                         </Marker>
@@ -179,7 +247,6 @@ export default function WeatherMap() {
                 })}
             </MapContainer>
 
-            {/* Tag vị trí ở góc */}
             <div className="map-footer-tag">
                 TP. Hà Nội - Khu vực trung tâm
             </div>

@@ -1,56 +1,96 @@
-version: "3.8"
-
 services:
-  frontend:
-    build:
-      context: ./SmartFloodCity_FE
-      dockerfile: Dockerfile
+  # ---------------------------------------------------
+  # 1) MQTT Broker (Mosquitto)
+  # ---------------------------------------------------
+  mosquitto:
+    image: eclipse-mosquitto:2
+    container_name: mosquitto
+    restart: unless-stopped
     ports:
-      - "3000:3000"
+      - "1883:1883"
+      - "9001:9001"
     volumes:
-      - ./SmartFloodCity_FE:/app
-      - /app/node_modules
-    environment:
-      - NODE_ENV=development
+      - ./mosquitto.conf:/mosquitto/config/mosquitto.conf
+    networks:
+      - fiware
 
-  backend:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-    ports:
-      - "5001:5001"
-    volumes:
-      - ./backend:/app
-      - /app/node_modules
-    environment:
-      - NODE_ENV=development
-
-  fuseki:
-    image: stain/jena-fuseki
-    container_name: fuseki
-    ports:
-      - "3030:3030"
-    volumes:
-      - ./fuseki:/fuseki
-    environment:
-      - ADMIN_PASSWORD=admin
-
+  # ---------------------------------------------------
+  # 2) MongoDB (Context Broker + IoTAgent storage)
+  # ---------------------------------------------------
   mongo:
-    image: mongo:4.4
-    container_name: mongo-orion
+    image: mongo:5.0
+    container_name: mongo
+    restart: unless-stopped
     ports:
       - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+    networks:
+      - fiware
 
+  # ---------------------------------------------------
+  # 3) Orion-LD Context Broker
+  # ---------------------------------------------------
   orion-ld:
-    image: fiware/orion-ld
+    image: fiware/orion-ld:latest
     container_name: orion-ld
+    restart: unless-stopped
     depends_on:
       - mongo
     ports:
       - "1026:1026"
     environment:
+      - ORIONLD_LOG_LEVEL=DEBUG
       - ORIONLD_MONGO_HOST=mongo
+    networks:
+      - fiware
+
+  # ---------------------------------------------------
+  # 4) IoT Agent JSON (MQTT)
+  # ---------------------------------------------------
+  iotagent-json:
+    image: fiware/iotagent-json:latest
+    container_name: iotagent-json
+    restart: unless-stopped
+    depends_on:
+      - mongo
+      - mosquitto
+      - orion-ld
+    ports:
+      - "4041:4041"
+      - "7896:7896"
+    environment:
+      - IOTA_CB_HOST=orion-ld
+      - IOTA_CB_PORT=1026
+      - IOTA_CB_NGSI_VERSION=ld
+
+      - IOTA_NORTH_PORT=4041
+
+      - IOTA_MQTT_HOST=mosquitto
+      - IOTA_MQTT_PORT=1883
+
+      - IOTA_REGISTRY_TYPE=mongodb
+      - IOTA_LOG_LEVEL=DEBUG
+      - IOTA_TIMESTAMP=true
+      - IOTA_AUTOCAST=true
+
+      - IOTA_DEFAULT_RESOURCE=/iot/json
+      - IOTA_FIWARE_SERVICE=openiot
+      - IOTA_FIWARE_SERVICEPATH=/
+      - IOTA_JSON_LD_CONTEXT=https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context-v1.7.jsonld
+      - IOTA_FALLBACK_TENANT=openiot
+
+      - IOTA_MONGO_HOST=mongo
+      - IOTA_MONGO_PORT=27017
+      - IOTA_MONGO_DB=iotagent
+    networks:
+      - fiware
 
 volumes:
+  mongo-data:
   node_modules_frontend:
   node_modules_backend:
+
+
+networks:
+  fiware:
