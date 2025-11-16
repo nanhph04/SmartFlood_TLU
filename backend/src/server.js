@@ -62,7 +62,18 @@ async function startServer() {
         // Gửi fake data ngay sau khi server start (demo purposes)
         await createFakeReadingsForAllSensors();
 
-        // Đặt interval gửi fake data định kỳ (30 phút)
+        // Đặt interval cập nhật thời tiết mỗi 1 tiếng
+        const { updateWeatherForAllAreas } = await import('./controllers/weather.controller.js');
+        setInterval(async () => {
+            console.log('--- Interval: cập nhật thời tiết cho tất cả area ---');
+            try {
+                await updateWeatherForAllAreas({}, { json: () => { }, status: () => ({ json: () => { } }) });
+            } catch (err) {
+                console.error('Error in interval weather update:', err.message);
+            }
+        }, 60 * 60 * 1000);
+
+        // Đặt interval gửi fake data định kỳ (1 tiếng)
         setInterval(async () => {
             console.log('--- Interval: sinh dữ liệu giả ---');
             try {
@@ -70,7 +81,7 @@ async function startServer() {
             } catch (err) {
                 console.error('Error in interval fake data:', err.message);
             }
-        }, 1 * 60 * 1000);
+        }, 60 * 60 * 1000);
     } catch (e) {
         console.error('Failed to start server:', e);
         process.exit(1);

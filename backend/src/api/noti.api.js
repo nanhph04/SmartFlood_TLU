@@ -9,7 +9,7 @@ router.post('/orion-notification', (req, res) => {
     const payload = req.body;
     try {
         const entities = payload?.data || [];
-        console.log('[Orion Notification] Received:', JSON.stringify(entities, null, 2));
+        // console.log('[Orion Notification] Received:', JSON.stringify(entities, null, 2));
         // Broadcast each entity update to websocket clients based on type
         entities.forEach(ent => {
             if (ent.type === 'FloodSensor') {

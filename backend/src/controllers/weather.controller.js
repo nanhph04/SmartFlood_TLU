@@ -1,6 +1,7 @@
 
 import { createWeatherEntity } from "../entities/WeatherObservation.js";
 import axios from "axios";
+import WeatherHistory from "../models/WeatherHistory.model.js";
 
 const ORION_LD_URL = process.env.ORION_LD_URL;
 const OPENWEATHER_API_KEY = process.env.OPENWEATHER_API_KEY;
@@ -17,21 +18,12 @@ async function getAllAreas() {
 
 // Lấy bản ghi thời tiết mới nhất cho 1 area theo lat, lon
 async function getLatestWeatherByCoords(lat, lon) {
-    const res = await axios.get(`${ORION_LD_URL}?type=WeatherObservation`, {
-        headers: { 'Accept': 'application/ld+json' }
-    });
-    const arr = res.data.filter(e => {
-        const coords = e.location?.value?.coordinates;
-        if (!coords || coords.length !== 2) return false;
-        // So sánh số thực, làm tròn 5 chữ số sau dấu phẩy
-        return (
-            Math.abs(Number(coords[0]) - Number(lon)) < 1e-5 &&
-            Math.abs(Number(coords[1]) - Number(lat)) < 1e-5
-        );
-    });
-    if (!arr.length) return null;
-    arr.sort((a, b) => new Date(b.observedAt?.value || 0) - new Date(a.observedAt?.value || 0));
-    return arr[0];
+    // Chỉ cho phép truy vấn theo areaId để tối ưu
+    const areaId = arguments[2];
+    if (!areaId) throw new Error('areaId is required for getLatestWeatherByCoords');
+    const url = `${ORION_LD_URL}?type=WeatherObservation&q=areaId==${encodeURIComponent(areaId)}&options=keyValues&limit=1&sort=-observedAt`;
+    const res = await axios.get(url, { headers: { 'Accept': 'application/ld+json' } });
+    return res.data && res.data.length ? res.data[0] : null;
 }
 
 // ========== API Controllers ==========
@@ -42,21 +34,16 @@ async function getLatestWeatherByCoords(lat, lon) {
  */
 export const getLatestWeatherForAllAreas = async (req, res) => {
     try {
-        const areas = await getAllAreas();
-        const results = [];
-        for (const area of areas) {
-            const areaId = area.id;
-            const coords = area.location?.value?.coordinates;
-            if (!areaId || !coords || coords.length !== 2) continue;
-            const [lon, lat] = coords;
-            const weather = await getLatestWeatherByCoords(lat, lon);
-            if (weather) {
-                results.push(flattenWeatherEntity(weather, areaId, lat, lon));
-            }
-        }
+        // Lấy tất cả entity WeatherObservation từ Orion-LD
+        const url = `${ORION_LD_URL}?type=WeatherObservation&options=keyValues`;
+        const resOrion = await axios.get(url, { headers: { 'Accept': 'application/ld+json' } });
+        const entities = resOrion.data || [];
+        // Làm phẳng dữ liệu trả về cho frontend
+        const results = entities.map(e => flattenWeatherEntity(e, e.areaId?.value, e.location?.value?.coordinates?.[1], e.location?.value?.coordinates?.[0]));
         res.json(results);
     } catch (err) {
-        res.status(500).json({ error: 'Không lấy được dữ liệu thời tiết mới nhất cho các area' });
+        console.error('Lỗi lấy tất cả entity WeatherObservation:', err.message);
+        res.status(500).json({ error: 'Không lấy được dữ liệu thời tiết' });
     }
 };
 
@@ -71,19 +58,48 @@ export const updateWeatherForAllAreas = async (req, res) => {
         for (const area of areas) {
             const areaName = extractAreaName(area);
             const coords = area.location?.value?.coordinates;
-            if (coords && coords.length === 2 && areaName) {
-                const [lon, lat] = coords;
+            const areaId = area.id;
+            if (!areaId || typeof areaId !== 'string' || !coords || coords.length !== 2 || !areaName) continue;
+            const [lon, lat] = coords;
+            try {
+                const weatherData = await fetchWeatherFromOpenWeatherMap(lat, lon);
+                // Lưu lịch sử vào MongoDB
+                await WeatherHistory.create({
+                    areaId,
+                    areaName,
+                    longitude: lon,
+                    latitude: lat,
+                    temperature: weatherData.main && weatherData.main.temp,
+                    humidity: weatherData.main && weatherData.main.humidity,
+                    rainfall: weatherData.rain ? weatherData.rain["1h"] || weatherData.rain["3h"] || 0 : 0,
+                    pressure: weatherData.main && weatherData.main.pressure,
+                    windSpeed: weatherData.wind && weatherData.wind.speed,
+                    observedAt: weatherData.dt ? new Date(weatherData.dt * 1000) : new Date(),
+                    source: "OpenWeatherMap"
+                });
+
+                // Tạo entity mới nhất cho Orion-LD (ID cố định theo areaId)
+                const entity = buildWeatherEntity(areaName, lat, lon, weatherData, areaId);
+                console.log('Entity gửi lên Orion-LD:', JSON.stringify(entity, null, 2));
+                // PATCH entity theo ID, nếu chưa có thì POST mới
                 try {
-                    const weatherData = await fetchWeatherFromOpenWeatherMap(lat, lon);
-                    const entity = buildWeatherEntity(areaName, lat, lon, weatherData);
-                    await axios.post(ORION_LD_URL, entity, {
+                    await axios.patch(`${ORION_LD_URL}/${encodeURIComponent(entity.id)}/attrs`, entity, {
                         headers: { 'Content-Type': 'application/ld+json' }
                     });
-                } catch (err) {
-                    const msg = `Lỗi tạo bản ghi thời tiết cho area ${areaName}: ${err.message}`;
-                    console.error(msg);
-                    errors.push(msg);
+                } catch (patchErr) {
+                    // Nếu PATCH lỗi 404 (chưa có entity), thì POST mới
+                    if (patchErr.response && patchErr.response.status === 404) {
+                        await axios.post(ORION_LD_URL, entity, {
+                            headers: { 'Content-Type': 'application/ld+json' }
+                        });
+                    } else {
+                        throw patchErr;
+                    }
                 }
+            } catch (err) {
+                const msg = `Lỗi tạo bản ghi thời tiết cho area ${areaName}: ${err.message}`;
+                console.error(msg);
+                errors.push(msg);
             }
         }
         if (errors.length > 0) {
@@ -114,12 +130,8 @@ async function fetchWeatherFromOpenWeatherMap(lat, lon) {
 function buildWeatherEntity(areaName, lat, lon, data) {
     const rain = data.rain ? data.rain["1h"] || data.rain["3h"] || 0 : 0;
     const observedAt = data.dt ? new Date(data.dt * 1000).toISOString() : new Date().toISOString();
-    const safeAreaName = (areaName || '').replace(/[^a-zA-Z0-9_-]/g, '_');
-    const safeLat = String(lat).replace(/[^0-9.\-]/g, '');
-    const safeLon = String(lon).replace(/[^0-9.\-]/g, '');
-    const entityId = `urn:ngsi-ld:WeatherObservation:${safeAreaName}:${safeLat}_${safeLon}:${Date.now()}`;
+    // Tham số thứ 5 là areaId
     return createWeatherEntity({
-        id: entityId,
         areaName,
         longitude: lon,
         latitude: lat,
@@ -129,26 +141,44 @@ function buildWeatherEntity(areaName, lat, lon, data) {
         pressure: data.main && data.main.pressure,
         windSpeed: data.wind && data.wind.speed,
         observedAt,
-        source: "OpenWeatherMap"
+        source: "OpenWeatherMap",
+        areaId: arguments[4]
     });
 }
 
 // Làm phẳng entity weather để trả về cho frontend
 function flattenWeatherEntity(weather, areaId, lat, lon) {
+    // Helper lấy giá trị: nếu là object có .value thì lấy .value, nếu là primitive thì lấy luôn
+    const getVal = v => (v && typeof v === 'object' && 'value' in v) ? v.value : v;
     return {
         id: weather.id,
         type: weather.type,
-        areaId,
-        areaName: weather.areaName?.value,
-        temperature: weather["https://smart-data-models.github.io/data-models/terms.jsonld#/definitions/temperature"]?.value || weather.temperature?.value,
-        humidity: weather["https://uri.fiware.org/ns/data-models#humidity"]?.value || weather.humidity?.value,
-        rainfall: weather["https://uri.fiware.org/ns/data-models#rainfall"]?.value || weather.rainfall?.value,
-        windSpeed: weather["https://smart-data-models.github.io/data-models/terms.jsonld#/definitions/windSpeed"]?.value || weather.windSpeed?.value,
-        pressure: weather["https://uri.fiware.org/ns/data-models#pressure"]?.value || weather.pressure?.value,
-        observedAt: weather.observedAt?.value,
-        location: weather.location?.value,
-        lat,
-        lon
+        areaId: getVal(weather.areaId) || areaId,
+        areaName: getVal(weather.areaName),
+        temperature:
+            getVal(weather["https://smart-data-models.github.io/data-models/terms.jsonld#/definitions/temperature"])
+            ?? getVal(weather.temperature),
+        humidity:
+            getVal(weather["https://uri.fiware.org/ns/data-models#humidity"])
+            ?? getVal(weather.humidity),
+        rainfall:
+            getVal(weather["https://uri.fiware.org/ns/data-models#rainfall"])
+            ?? getVal(weather.rainfall),
+        windSpeed:
+            getVal(weather["https://smart-data-models.github.io/data-models/terms.jsonld#/definitions/windSpeed"])
+            ?? getVal(weather.windSpeed),
+        pressure:
+            getVal(weather["https://uri.fiware.org/ns/data-models#pressure"])
+            ?? getVal(weather.pressure),
+        source:
+            getVal(weather["https://smart-data-models.github.io/data-models/terms.jsonld#/definitions/source"])
+            ?? getVal(weather.source),
+        observedAt:
+            getVal(weather["https://uri.etsi.org/ngsi-ld/observedAt"])
+            ?? getVal(weather.observedAt),
+        location: getVal(weather.location),
+        lat: lat ?? (getVal(weather.location)?.coordinates?.[1]),
+        lon: lon ?? (getVal(weather.location)?.coordinates?.[0])
     };
 }
 

@@ -31,7 +31,7 @@ export async function ensureFloodSensorSubscription() {
         const body = {
             description: 'Thông báo khi cảm biến lũ lụt có dữ liệu mới',
             type: 'Subscription',
-            entities: [{ type: 'FloodSensor' }],
+            entities: [{ type: 'FloodSensor', idPattern: '^urn:ngsi-ld:FloodSensor:.*' }],
             watchedAttributes: ['waterLevel', 'status'],
             notification: {
                 attributes: ['waterLevel', 'status', 'lastReadingAt', 'location', 'areaName'],
@@ -83,7 +83,7 @@ export async function ensureWeatherSubscription() {
         const body = {
             description: 'Thông báo khi thời tiết có dữ liệu mới',
             type: 'Subscription',
-            entities: [{ type: 'WeatherObservation' }],
+            entities: [{ type: 'WeatherObservation', idPattern: '^urn:ngsi-ld:WeatherObservation:.*' }],
             watchedAttributes: ['temperature', 'humidity', 'rainfall'],
             notification: {
                 attributes: ['temperature', 'humidity', 'rainfall', 'observedAt', 'location', 'areaName'],
