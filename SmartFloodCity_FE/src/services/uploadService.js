@@ -2,7 +2,7 @@
 import axios from "axios";
 
 // 1. PORT & host của backend
-const API_BASE_URL = "http://localhost:3000";
+const API_BASE_URL = "http://localhost:5001";
 
 // 2. ĐƯỜNG DẪN UPLOAD ĐÚNG Y NHƯ POSTMAN (phần sau :3000)
 const UPLOAD_PATH = "/api/uploads"; // ví dụ: "/api/upload", "/api/report/upload-image", ...

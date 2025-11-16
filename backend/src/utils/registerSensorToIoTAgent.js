@@ -63,8 +63,10 @@ export async function registerSensorToIoTAgent(sensor, iotAgentUrl = "http://loc
         const apikey = device.devices[0].apikey;
         // Topic theo IoTAgent MQTT convention: /<apikey>/<device_id>/attrs
         const topic = `/${apikey}/${deviceId}/attrs`;
+
         const payload = {
             name: sensor.name || deviceId,
+            areaName: sensor.areaName || "",
             status: sensor.status || 'active',
             waterLevel: 0,
             batteryLevel: Math.floor(80 + Math.random() * 20),

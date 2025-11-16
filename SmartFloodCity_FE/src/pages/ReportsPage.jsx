@@ -45,7 +45,7 @@ function ReportsPage() {
 
   // nên lấy URL từ env cho đỡ hard-code
   const SOCKET_BASE_URL =
-    import.meta.env.VITE_API_BASE_URL || "http://localhost:3000";
+    import.meta.env.VITE_API_BASE_URL || "http://localhost:5001";
 
   // Hàm load lại cả 2 list (dùng lại được nhiều chỗ)
   const fetchLists = useCallback(async () => {
@@ -146,7 +146,7 @@ function ReportsPage() {
       console.error("Lỗi approve:", err);
       alert(
         err?.response?.data?.message ||
-          "Không thể xác minh báo cáo, vui lòng thử lại."
+        "Không thể xác minh báo cáo, vui lòng thử lại."
       );
     } finally {
       setActionId(null);
@@ -166,7 +166,7 @@ function ReportsPage() {
       console.error("Lỗi reject:", err);
       alert(
         err?.response?.data?.message ||
-          "Không thể từ chối báo cáo, vui lòng thử lại."
+        "Không thể từ chối báo cáo, vui lòng thử lại."
       );
     } finally {
       setActionId(null);
@@ -317,11 +317,10 @@ function ReportsPage() {
                     <td className="py-3 pr-4">{r.description}</td>
                     <td className="py-3 pr-4 whitespace-nowrap">
                       <span
-                        className={`px-3 py-1 rounded-full text-xs ${
-                          isSevere
+                        className={`px-3 py-1 rounded-full text-xs ${isSevere
                             ? "bg-rose-50 text-rose-700"
                             : "bg-amber-50 text-amber-700"
-                        }`}
+                          }`}
                       >
                         {levelLabel}
                       </span>
