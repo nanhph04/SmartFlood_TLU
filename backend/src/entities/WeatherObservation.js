@@ -26,10 +26,13 @@ function geoProperty(longitude, latitude) {
  * @param {Object} params - Weather params
  * @returns {Object} NGSI-LD entity
  */
-export function createWeatherEntity({ id, areaName, longitude, latitude, temperature, humidity, rainfall, pressure, windSpeed, observedAt, source }) {
-    return {
+export function createWeatherEntity({ id, areaName, longitude, latitude, temperature, humidity, rainfall, pressure, windSpeed, observedAt, source, areaId }) {
+    // ID cố định theo areaId để mỗi area chỉ có 1 entity WeatherObservation duy nhất
+    const entityId = id || (areaId ? `urn:ngsi-ld:WeatherObservation:${areaId}` : undefined);
+    const entity = {
         "@context": "http://host.docker.internal:5001/context.jsonld",
-        id: id || `urn:ngsi-ld:WeatherObservation:${areaName || ''}:${Date.now()}`,
+        id: entityId,
+        areaId: propertyField(areaId),
         type: "WeatherObservation",
         areaName: propertyField(areaName),
         location: geoProperty(longitude, latitude),
@@ -41,4 +44,5 @@ export function createWeatherEntity({ id, areaName, longitude, latitude, tempera
         "https://uri.etsi.org/ngsi-ld/observedAt": propertyField(observedAt),
         source: propertyField(source)
     };
+    return entity;
 }
