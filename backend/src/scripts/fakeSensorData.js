@@ -113,7 +113,9 @@ async function createFakeReadingsForAllSensors() {
                     console.warn(`[SKIP] Sensor ${sensor.device_id || sensor.name} không hợp lệ, bỏ qua.`);
                     continue;
                 }
-                let topic = `sensors/${sensor.device_id || sensor.id || sensor.name}`;
+                const apikey = sensor.apikey || 'flood';
+                // Topic theo IoTAgent MQTT convention: /<apikey>/<device_id>/attrs
+                let topic = `/${apikey}/${sensor.device_id || sensor.id || sensor.name}/attrs`;
                 if (sensor.endpoint) topic = sensor.endpoint;
                 mqttClient.publish(topic, JSON.stringify(payload), { qos: 0 }, (err) => {
                     if (err) {
